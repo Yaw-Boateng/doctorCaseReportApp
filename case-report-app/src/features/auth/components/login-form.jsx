@@ -1,68 +1,85 @@
-// src/features/auth/components/login-form.jsx
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { PasswordInput } from "@/components/ui/password-input";
+import { useAuth } from "../context/use-auth";
 
-export function LoginForm({ onLogin, setView }) {
+export function LoginForm() {
+  const { login } = useAuth(); 
+  const navigate = useNavigate();
+  
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const submit = async (e) => {
+    e?.preventDefault();
+    setLoading(true);
+    try {
+      // Hits your global Context handler to log in via your Spring Boot API
+      await login(email, password);
+      // Note: Redirection to dashboards happens automatically inside App.jsx 
+      // as soon as the global authenticated state changes.
+    } catch (err) {
+      // TODO: Surface error to user (toast)
+      console.error("Login component catch block triggered:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="flex flex-col gap-4 w-full max-w-sm">
-      <div className="flex flex-col gap-1">
+    <form className="flex flex-col gap-4 w-full" onSubmit={submit}>
+      <div className="flex flex-col gap-2">
         <label className="text-sm font-medium">Email Address</label>
         <input
           type="email"
           placeholder="name@example.com"
-          className="h-11 px-3 rounded-xl border border-input bg-input text-foreground text-sm placeholder:text-muted-foreground"
-          defaultValue="doctor@hospital.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="h-10 sm:h-11 px-3 rounded-lg border border-input bg-input text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-background"
+          required
         />
       </div>
+
       <PasswordInput
         label="Password"
         id="login-password"
         placeholder="Enter your password"
-        defaultValue=""
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        required
       />
 
-      <div className="text-xs text-center font-semibold text-muted-foreground my-1">
-        💡 TEST LOGIN CHANNELS
-      </div>
-
-      <div className="grid grid-cols-3 gap-2">
-        <Button
-          onClick={() => onLogin("admin")}
-          size="sm"
-          variant="outline"
-          className="border-amber-500 hover:bg-amber-500/10"
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-muted-foreground mt-4 border-t border-border pt-4">
+        <button
+          type="button"
+          onClick={() => navigate("/register")}
+          className="hover:underline w-full sm:w-auto text-center"
         >
-          Admin
-        </Button>
-        <Button
-          onClick={() => onLogin("worker")}
-          size="sm"
-          variant="outline"
-          className="border-blue-500 hover:bg-blue-500/10"
-        >
-          Worker
-        </Button>
-        <Button
-          onClick={() => onLogin("manager")}
-          size="sm"
-          variant="outline"
-          className="border-emerald-500 hover:bg-emerald-500/10"
-        >
-          Manager
-        </Button>
-      </div>
-
-      <div className="flex justify-between items-center text-xs text-muted-foreground mt-4 border-t border-border pt-4">
-        <button onClick={() => setView("Register")} className="hover:underline">
           Create Account
         </button>
         <button
-          onClick={() => setView("Forgot Password")}
-          className="hover:underline"
+          type="button"
+          onClick={() => navigate("/forgot-password")}
+          className="hover:underline w-full sm:w-auto text-center"
         >
           Forgot Password?
         </button>
       </div>
-    </div>
+
+      <div className="mt-4">
+        <Button type="submit" className="w-full" disabled={loading}>
+          {loading ? (
+            <span className="inline-flex items-center gap-2">
+              <span className="h-4 w-4 rounded-full animate-spin border-primary/20 border-t-primary border-2" />
+              Signing in…
+            </span>
+          ) : (
+            "Sign In"
+          )}
+        </Button>
+      </div>
+    </form>
   );
 }
