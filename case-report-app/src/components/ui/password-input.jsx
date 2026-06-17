@@ -12,7 +12,7 @@ export function PasswordInput({
   const [visible, setVisible] = useState(false);
 
   return (
-    <div className={`relative flex flex-col gap-1 ${className}`}>
+    <div className={`relative flex flex-col gap-2 ${className}`}>
       {label ? (
         <label htmlFor={id} className="text-sm font-medium">
           {label}
@@ -24,7 +24,7 @@ export function PasswordInput({
           id={id}
           type={visible ? "text" : "password"}
           placeholder={placeholder}
-          className="h-11 w-full rounded-xl border border-input bg-input px-3 pr-14 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+          className="h-10 sm:h-11 w-full rounded-lg border border-input bg-input px-3 pr-12 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-background"
           {...props}
         />
 
@@ -32,7 +32,8 @@ export function PasswordInput({
           <Button
             type="button"
             variant="ghost"
-            className="h-9 w-9 p-0 rounded-full text-muted-foreground hover:text-foreground transition-colors bg-transparent hover:bg-primary/10 dark:hover:bg-primary/20"
+            size="icon"
+            className="h-8 w-8 text-muted-foreground hover:text-foreground transition-colors"
             onClick={() => setVisible((prev) => !prev)}
             aria-label={visible ? "Hide password" : "Show password"}
           >
