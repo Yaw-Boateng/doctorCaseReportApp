@@ -1,6 +1,12 @@
 // src/App.jsx
 import { Suspense, lazy } from "react";
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  Outlet,
+} from "react-router-dom";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Loader } from "@/components/ui/loader";
@@ -15,17 +21,37 @@ import { AuthLayout } from "@/features/auth/auth-layout";
 import { ProtectedRoute } from "@/features/auth/components/ProtectedRoute";
 import { DashboardLayout } from "@/features/shared/DashboardLayout";
 import { useAuth } from "./features/auth/context/use-auth";
+import { useMemo } from "react";
 const WorkerDetails = lazy(() => import("./features/admin/worker-details"));
 
 // Lazy-Loaded Modules
 const AdminDashboard = lazy(() => import("./features/admin/admin-dashboard"));
-const WorkersManagement = lazy(() => import("./features/admin/workers-management"));
-const DoctorManagement = lazy(() => import("./features/workers/doctor-management"));
-const LogCaseManagement = lazy(() => import("./features/workers/log-case-management"));
-const ManagerDashboard = lazy(() => import("./features/managers/manager-dashboard"));
+const WorkersManagement = lazy(
+  () => import("./features/admin/workers-management"),
+);
+const DoctorManagement = lazy(
+  () => import("./features/workers/doctor-management"),
+);
+const LogCaseManagement = lazy(
+  () => import("./features/workers/log-case-management"),
+);
+const ManagerDashboard = lazy(
+  () => import("./features/managers/manager-dashboard"),
+);
 
 export default function App() {
-  const { user, role, logout, isLoading } = useAuth();
+  const { user, role: rawRole, logout, isLoading } = useAuth();
+
+  // Safely normalize raw user roles coming down from backend signatures
+  const role = useMemo(() => {
+    if (!rawRole) return "";
+    // Handles "ROLE_ADMIN", "ADMIN", or already normalized "admin" safely
+    return rawRole
+      .toLowerCase()
+      .replace(/^role_/, "")
+      .trim();
+  }, [rawRole]);
+
   const isAuthenticated = !!user;
 
   if (isLoading) {
@@ -53,39 +79,167 @@ export default function App() {
                   </Suspense>
                 </div>
               ) : (
-                <Navigate to={role === "admin" ? "/admin" : role === "manager" ? "/manager" : "/doctor"} replace />
+                // Ensure this ternary route block matches your exact normalized tokens
+                <Navigate
+                  to={
+                    role === "admin"
+                      ? "/admin"
+                      : role === "manager"
+                        ? "/manager"
+                        : "/doctor"
+                  }
+                  replace
+                />
               )
             }
           >
-            <Route path="/login" element={<AuthLayout title="Portal Login"><LoginForm /></AuthLayout>} />
-            <Route path="/register" element={<AuthLayout title="Register Account"><RegisterForm /></AuthLayout>} />
-            <Route path="/forgot-password" element={<AuthLayout title="Reset Credentials"><ForgotPasswordForm /></AuthLayout>} />
-            <Route path="/verify-otp" element={<AuthLayout title="Verify Security Code"><OtpForm /></AuthLayout>} />
-            <Route path="/reset-password" element={<AuthLayout title="Create New Password"><ResetPasswordForm /></AuthLayout>} />
+            <Route
+              path="/login"
+              element={
+                <AuthLayout title="Portal Login">
+                  <LoginForm />
+                </AuthLayout>
+              }
+            />
+            <Route
+              path="/register"
+              element={
+                <AuthLayout title="Register Account">
+                  <RegisterForm />
+                </AuthLayout>
+              }
+            />
+            <Route
+              path="/forgot-password"
+              element={
+                <AuthLayout title="Reset Credentials">
+                  <ForgotPasswordForm />
+                </AuthLayout>
+              }
+            />
+            <Route
+              path="/verify-otp"
+              element={
+                <AuthLayout title="Verify Security Code">
+                  <OtpForm />
+                </AuthLayout>
+              }
+            />
+            <Route
+              path="/reset-password"
+              element={
+                <AuthLayout title="Create New Password">
+                  <ResetPasswordForm />
+                </AuthLayout>
+              }
+            />
           </Route>
 
           {/* ================= SECURE / PROTECTED DASHBOARD CORE ================= */}
-          <Route element={<ProtectedRoute isAuthenticated={isAuthenticated} userRole={role} />}>
-            <Route element={<DashboardLayout userRole={role} onLogout={logout} />}>
-              
+          <Route
+            element={
+              <ProtectedRoute
+                isAuthenticated={isAuthenticated}
+                userRole={role}
+              />
+            }
+          >
+            <Route
+              element={<DashboardLayout userRole={role} onLogout={logout} />}
+            >
               {/* ADMIN MODULES */}
-              <Route element={<ProtectedRoute isAuthenticated={isAuthenticated} userRole={role} allowedRoles={["admin"]} />}>
-                <Route path="/admin" element={<Suspense fallback={<Loader message="Loading dashboard…" />}><AdminDashboard /></Suspense>} />
-                <Route path="/admin/workers" element={<Suspense fallback={<Loader message="Loading workers…" />}><WorkersManagement /></Suspense>} />
-                <Route path="/admin/users/:id" element={<Suspense fallback={<Loader message="Loading parameters…" />}><WorkerDetails /></Suspense>} />
+              <Route
+                element={
+                  <ProtectedRoute
+                    isAuthenticated={isAuthenticated}
+                    userRole={role}
+                    allowedRoles={["admin"]}
+                  />
+                }
+              >
+                <Route
+                  path="/admin"
+                  element={
+                    <Suspense
+                      fallback={<Loader message="Loading dashboard…" />}
+                    >
+                      <AdminDashboard />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/admin/workers"
+                  element={
+                    <Suspense fallback={<Loader message="Loading workers…" />}>
+                      <WorkersManagement />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/admin/users/:id"
+                  element={
+                    <Suspense
+                      fallback={<Loader message="Loading parameters…" />}
+                    >
+                      <WorkerDetails />
+                    </Suspense>
+                  }
+                />
               </Route>
 
               {/* WORKER MODULES */}
-              <Route element={<ProtectedRoute isAuthenticated={isAuthenticated} userRole={role} allowedRoles={["worker", "admin"]} />}>
-                <Route path="/doctor" element={<Suspense fallback={<Loader message="Loading clinical view…" />}><DoctorManagement /></Suspense>} />
-                <Route path="/cases/log" element={<Suspense fallback={<Loader message="Loading case view…" />}><LogCaseManagement /></Suspense>} />
+              <Route
+                element={
+                  <ProtectedRoute
+                    isAuthenticated={isAuthenticated}
+                    userRole={role}
+                    allowedRoles={["worker", "admin"]}
+                  />
+                }
+              >
+                <Route
+                  path="/doctor"
+                  element={
+                    <Suspense
+                      fallback={<Loader message="Loading clinical view…" />}
+                    >
+                      <DoctorManagement />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/cases/log"
+                  element={
+                    <Suspense
+                      fallback={<Loader message="Loading case view…" />}
+                    >
+                      <LogCaseManagement />
+                    </Suspense>
+                  }
+                />
               </Route>
 
               {/* MANAGER MODULES */}
-              <Route element={<ProtectedRoute isAuthenticated={isAuthenticated} userRole={role} allowedRoles={["manager"]} />}>
-                <Route path="/manager" element={<Suspense fallback={<Loader message="Loading management views…" />}><ManagerDashboard /></Suspense>} />
+              <Route
+                element={
+                  <ProtectedRoute
+                    isAuthenticated={isAuthenticated}
+                    userRole={role}
+                    allowedRoles={["manager"]}
+                  />
+                }
+              >
+                <Route
+                  path="/manager"
+                  element={
+                    <Suspense
+                      fallback={<Loader message="Loading management views…" />}
+                    >
+                      <ManagerDashboard />
+                    </Suspense>
+                  }
+                />
               </Route>
-
             </Route>
           </Route>
 

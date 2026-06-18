@@ -1,86 +1,57 @@
-import { useState, useMemo, useEffect } from "react";
-import { adminService } from "@/lib/adminService";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-
-const INITIAL_AUDIT_LOGS = [
-  { 
-    id: "LOG-101", 
-    userId: "43781de8-3c7f-4833-9d1a-7ff4b4165258", 
-    fullName: "Augustine Asante Boateng",
-    email: "yfrimps13@gmail.com", 
-    action: "USER_LOGIN", 
-    details: "User logged into the system", 
-    timestamp: "2026-06-05T12:59:08.997Z" 
-  },
-  { 
-    id: "LOG-102", 
-    userId: "b211a76c-1829-4c22-94b1-9cbefc4c0102", 
-    fullName: "Selina Agyeman",
-    email: "selina.a@clinic.gh", 
-    action: "USER_LOGIN", 
-    details: "Authenticated via edge node regional network gateway split tunnel.", 
-    timestamp: "2026-06-05T11:02:10Z" 
-  },
-  { 
-    id: "LOG-103", 
-    userId: "71fd822a-da55-46e3-8012-1114bfb6a099", 
-    fullName: "George Kwesi",
-    email: "g.kwesi@health.gov.gh", 
-    action: "PASSWORD_RESET_REQUEST", 
-    details: "Requested temporary OTP route via security governance portal layers.", 
-    timestamp: "2026-06-05T11:45:00Z" 
-  }
-];
+import { useAdminDashboard } from "./hooks/useAdminDashboard";
 
 export default function AdminDashboard() {
-  const [logs] = useState(INITIAL_AUDIT_LOGS);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentView, setCurrentView] = useState("overview");
 
-  const [totalUsersCount, setTotalUsersCount] = useState(0);
-  const [clinicalWorkersCount, setClinicalWorkersCount] = useState(0);
-  const [systemManagersCount, setSystemManagersCount] = useState(0);
+  // Consume your synchronized React Query hook state instance
+  const { data, isLoading, isError } = useAdminDashboard();
 
-  useEffect(() => {
-    const computeDashboardMetrics = async () => {
-      try {
-        const res = await adminService.getAllUsers({ page: 0, size: 200 });
-        const userList = res?.data?.content || [];
-        
-        setTotalUsersCount(res?.data?.totalElements || userList.length);
-        
-        const clinicalCount = userList.filter(u => u.role === "ROLE_WORKER" || u.role === "ROLE_CLINICAL").length;
-        const managerCount = userList.filter(u => u.role === "ROLE_ADMIN" || u.role === "ROLE_SUPERVISOR").length;
-
-        setClinicalWorkersCount(clinicalCount || 0);
-        setSystemManagersCount(managerCount || 0);
-      } catch (err) {
-        console.warn("Could not load dynamic platform totals metrics matrix:", err);
-      }
-    };
-
-    computeDashboardMetrics();
-  }, []);
+  // Safeguard defaults if data is still loading or unavailable
+  const logs = data?.logs || [];
+  const statsMetrics = data?.stats || { totalUsersCount: null, clinicalWorkersCount: null, systemManagersCount: null };
 
   const stats = useMemo(() => [
-    { label: "Total Registered Users", count: String(totalUsersCount || 142), detail: "All platform roles combined" },
-    { label: "Total Clinical Workers", count: String(clinicalWorkersCount || 98), detail: "Doctors and medical practitioners" },
-    { label: "Total System Managers", count: String(systemManagersCount || 44), detail: "Node and regional supervisors" },
-  ], [totalUsersCount, clinicalWorkersCount, systemManagersCount]);
+    { 
+      label: "Total Registered Users", 
+      count: statsMetrics.totalUsersCount !== null ? String(statsMetrics.totalUsersCount) : "Data unavailable", 
+      detail: "All platform roles combined" 
+    },
+    { 
+      label: "Total Clinical Workers", 
+      count: statsMetrics.clinicalWorkersCount !== null ? String(statsMetrics.clinicalWorkersCount) : "Data unavailable", 
+      detail: "Doctors and medical practitioners" 
+    },
+    { 
+      label: "Total System Managers", 
+      count: statsMetrics.systemManagersCount !== null ? String(statsMetrics.systemManagersCount) : "Node and regional supervisors" 
+    },
+  ], [statsMetrics]);
 
   const filteredLogs = useMemo(() => {
     if (!searchQuery.trim()) return logs;
     const query = searchQuery.toLowerCase();
     return logs.filter(
       (log) =>
-        log.email.toLowerCase().includes(query) ||
-        log.userId.toLowerCase().includes(query) ||
-        log.fullName.toLowerCase().includes(query) ||
-        log.action.toLowerCase().includes(query)
+        log.email?.toLowerCase().includes(query) ||
+        log.userId?.toLowerCase().includes(query) ||
+        log.fullName?.toLowerCase().includes(query) ||
+        log.action?.toLowerCase().includes(query)
     );
   }, [logs, searchQuery]);
 
   const previewLogs = useMemo(() => filteredLogs.slice(0, 4), [filteredLogs]);
+
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 text-center border rounded-xl border-destructive/20 bg-destructive/5 max-w-7xl mx-auto my-8">
+        <p className="text-sm font-medium text-destructive">Failed to establish synchronization with node platform telemetry APIs.</p>
+        <p className="text-xs text-muted-foreground mt-1">Check database container clusters or validation tokens.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-8 w-full animate-fade-in py-2 max-w-7xl mx-auto overflow-hidden">
@@ -99,7 +70,9 @@ export default function AdminDashboard() {
             {stats.map((s) => (
               <div key={s.label} className="p-6 rounded-xl border border-border bg-card text-card-foreground shadow-xs transition-all hover:border-border/80">
                 <span className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">{s.label}</span>
-                <div className="text-3xl font-light tracking-tight mt-3 mb-1 text-foreground">{s.count}</div>
+                <div className={`tracking-tight mt-3 mb-1 text-foreground ${isLoading ? "text-base text-muted-foreground/40 animate-pulse" : s.count === "Data unavailable" ? "text-base font-normal text-muted-foreground/60" : "text-3xl font-light"}`}>
+                  {isLoading ? "Fetching telemetry..." : s.count}
+                </div>
                 <span className="text-xs text-muted-foreground/80">{s.detail}</span>
               </div>
             ))}
@@ -121,13 +94,14 @@ export default function AdminDashboard() {
                   }}
                   variant="outline" 
                   className="text-xs h-9 border-border text-foreground font-medium px-4 hover:bg-muted"
+                  disabled={logs.length === 0 || isLoading}
                 >
                   See All Logs
                 </Button>
               </div>
             </div>
 
-            <TableStructure logsData={previewLogs} />
+            <TableStructure logsData={previewLogs} isLoading={isLoading} />
           </div>
         </>
       )}
@@ -161,6 +135,7 @@ export default function AdminDashboard() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="h-9 w-full px-3 text-xs rounded-lg border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                disabled={isLoading}
               />
             </div>
           </div>
@@ -168,7 +143,7 @@ export default function AdminDashboard() {
           <div className="border border-border rounded-xl p-4 sm:p-6 bg-card shadow-xs w-full overflow-hidden">
             <div className="flex items-center justify-between mb-4">
               <span className="text-xs text-muted-foreground">
-                Showing {filteredLogs.length} of {logs.length} logged entries
+                {isLoading ? "Quantifying logged matrices..." : `Showing ${filteredLogs.length} of ${logs.length} logged entries`}
               </span>
               {searchQuery && (
                 <button 
@@ -180,7 +155,7 @@ export default function AdminDashboard() {
               )}
             </div>
             
-            <TableStructure logsData={filteredLogs} />
+            <TableStructure logsData={filteredLogs} isLoading={isLoading} />
           </div>
         </div>
       )}
@@ -188,10 +163,9 @@ export default function AdminDashboard() {
   );
 }
 
-function TableStructure({ logsData }) {
+function TableStructure({ logsData, isLoading }) {
   return (
     <div className="border border-border rounded-lg overflow-hidden w-full bg-background shadow-xs">
-      {/* Scrollable table container wrapper */}
       <div className="w-full overflow-x-auto block scrollbar-thin">
         <table className="w-full text-left border-collapse text-xs table-auto min-w-[950px]">
           <thead>
@@ -204,21 +178,29 @@ function TableStructure({ logsData }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-border font-mono text-[11px] text-foreground">
-            {logsData.length === 0 ? (
+            {isLoading ? (
               <tr>
-                <td colSpan="5" className="p-8 text-center text-muted-foreground font-sans text-xs">
-                  No matching activity logs found for your search parameters.
+                <td colSpan="5" className="p-8 text-center text-muted-foreground font-sans text-xs animate-pulse">
+                  Loading operational logs from query cache...
+                </td>
+              </tr>
+            ) : logsData.length === 0 ? (
+              <tr>
+                <td colSpan="5" className="p-8 text-center text-muted-foreground/60 font-sans text-xs italic tracking-wide">
+                  Data unavailable
                 </td>
               </tr>
             ) : (
               logsData.map((log) => (
                 <tr key={log.id} className="hover:bg-muted/40 transition-colors">
-                  <td className="p-4 pl-5 text-foreground font-semibold">{log.id}</td>
+                  <td className="p-4 pl-5 text-foreground font-semibold truncate max-w-[100px]" title={log.id}>
+                    {log.id && log.id.length > 8 ? `${log.id.slice(0, 8)}...` : log.id}
+                  </td>
                   <td className="p-4 font-sans">
                     <div className="flex flex-col gap-0.5">
                       <div className="flex items-center gap-2">
                         <span className="text-foreground font-medium text-xs">{log.fullName}</span>
-                        {log.email === "yfrimps13@gmail.com" && (
+                        {log.role === "ROLE_ADMIN" && (
                           <span className="bg-primary/10 text-primary font-mono text-[9px] px-1.5 py-0.5 rounded-sm font-bold uppercase tracking-wide border border-primary/20">
                             Admin
                           </span>
@@ -232,7 +214,7 @@ function TableStructure({ logsData }) {
                   </td>
                   <td className="p-4">
                     <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold font-mono border ${
-                      log.action === "USER_LOGIN" 
+                      log.action?.includes("APPROVED") 
                         ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" 
                         : "bg-amber-500/10 text-amber-500 border-amber-500/20"
                     }`}>
@@ -243,8 +225,14 @@ function TableStructure({ logsData }) {
                     {log.details}
                   </td>
                   <td className="p-4 pr-5 text-right text-muted-foreground font-sans whitespace-nowrap">
-                    {new Date(log.timestamp).toLocaleDateString([], { month: "short", day: "numeric" })} &middot; {" "}
-                    {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                    {log.timestamp ? (
+                      <>
+                        {new Date(log.timestamp).toLocaleDateString([], { month: "short", day: "numeric" })} &middot; {" "}
+                        {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                      </>
+                    ) : (
+                      "N/A"
+                    )}
                   </td>
                 </tr>
               ))

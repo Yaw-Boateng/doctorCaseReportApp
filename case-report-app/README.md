@@ -70,7 +70,9 @@ case-report-app/
 │   │   │   │   ├── auth-context.jsx
 │   │   │   │   └── use-auth.jsx
 │   │   │   └── auth-layout.jsx
-│   │   ├── admin/                      # ADMIN FEATURES
+│   │   ├── admin/  
+│   │   │   ├── hooks/                  
+│   │   │   │   └── useAdminDashboard.js                # ADMIN FEATURES
 │   │   │   ├── workers-management.jsx
 │   │   │   └── admin-dashboard.jsx
 │   │   │   └── workers-details.jsx

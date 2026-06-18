@@ -11,18 +11,32 @@ export function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState(""); // Track submission errors
 
   const submit = async (e) => {
     e?.preventDefault();
     setLoading(true);
+    setErrorMessage(""); // Clear previous errors
+    
     try {
-      // Hits your global Context handler to log in via your Spring Boot API
-      await login(email, password);
-      // Note: Redirection to dashboards happens automatically inside App.jsx 
-      // as soon as the global authenticated state changes.
+      // 1. Await the login promise. Our optimized AuthProvider returns the clean, 
+      // normalized string ('admin', 'manager', 'worker') instantly.
+      const verifiedRole = await login(email, password);
+      
+      // 2. Explicit imperative navigation fallback. This cuts through any React state 
+      // batching delays, ensuring the Admin goes exactly where they belong.
+      if (verifiedRole === "admin") {
+        navigate("/admin", { replace: true });
+      } else if (verifiedRole === "manager") {
+        navigate("/manager", { replace: true });
+      } else {
+        navigate("/doctor", { replace: true });
+      }
+      
     } catch (err) {
-      // TODO: Surface error to user (toast)
       console.error("Login component catch block triggered:", err);
+      // Fallback message depending on your API error layout
+      setErrorMessage(err.response?.data?.message || err.message || "Invalid email or password.");
     } finally {
       setLoading(false);
     }
@@ -30,6 +44,14 @@ export function LoginForm() {
 
   return (
     <form className="flex flex-col gap-4 w-full" onSubmit={submit}>
+      
+      {/* ERROR NOTICE DISPLAY */}
+      {errorMessage && (
+        <div className="p-3 text-xs font-medium border rounded-lg text-destructive border-destructive/20 bg-destructive/5 animate-fade-in">
+          {errorMessage}
+        </div>
+      )}
+
       <div className="flex flex-col gap-2">
         <label className="text-sm font-medium">Email Address</label>
         <input

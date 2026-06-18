@@ -18,13 +18,28 @@ export const register = async (payload) => {
   return data;
 };
 
+// export const restoreSession = async () => {
+//   const token = localStorage.getItem(REFRESH_KEY);
+//   if (!token) throw new Error("No token");
+//   const res = await authApi.post("/refresh-token", { refreshToken: token });
+//   const data = res.data?.data;
+//   if (data?.accessToken) setAuthToken(data.accessToken);
+//   return data;
+// };
+
 export const restoreSession = async () => {
   const token = localStorage.getItem(REFRESH_KEY);
-  if (!token) throw new Error("No token");
+  if (!token) return null; // Return null instead of throwing an unhandled exception
+
   const res = await authApi.post("/refresh-token", { refreshToken: token });
   const data = res.data?.data;
-  if (data?.accessToken) setAuthToken(data.accessToken);
-  return data;
+  
+  if (data?.accessToken) {
+    setAuthToken(data.accessToken);
+  }
+  
+  // Return the entire payload wrapper so that user and role properties remain accessible
+  return data; 
 };
 
 export const logout = async () => {
