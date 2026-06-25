@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { adminService } from "@/lib/adminService";
-import { Button } from "@/components/ui/button";
+import { PaginationWrapper } from "@/components/ui/pagination-wrapper";
 
 export default function WorkersManagement() {
   const [users, setUsers] = useState([]);
@@ -170,29 +170,13 @@ export default function WorkersManagement() {
           </div>
         )}
 
-        {totalPages > 1 && (
-          <div className="flex items-center justify-end gap-2 mt-4 text-xs pt-2">
-            <Button
-              disabled={page === 0 || isLoading}
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
-              variant="outline"
-              className="h-8 text-[11px]"
-            >
-              Previous
-            </Button>
-            <span className="text-muted-foreground px-2">
-              Page {page + 1} of {totalPages}
-            </span>
-            <Button
-              disabled={page >= totalPages - 1 || isLoading}
-              onClick={() => setPage((p) => p + 1)}
-              variant="outline"
-              className="h-8 text-[11px]"
-            >
-              Next
-            </Button>
-          </div>
-        )}
+        {/* Integrated Pagination Component Wrapper */}
+        <PaginationWrapper
+          currentPage={page}
+          totalPages={totalPages}
+          onPageChange={(newPage) => setPage(newPage)}
+          isLoading={isLoading}
+        />
       </div>
     </div>
   );
