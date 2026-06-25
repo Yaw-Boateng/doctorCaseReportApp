@@ -38,6 +38,9 @@ const LogCaseManagement = lazy(
 const ManagerDashboard = lazy(
   () => import("./features/managers/manager-dashboard"),
 );
+const TestManagement = lazy(
+  () => import("./features/admin/test-management"),
+);
 
 export default function App() {
   const { user, role: rawRole, logout, isLoading } = useAuth();
@@ -182,6 +185,18 @@ export default function App() {
                       fallback={<Loader message="Loading parameters…" />}
                     >
                       <WorkerDetails />
+                    </Suspense>
+                  }
+                />
+                 <Route
+                  path="/admin/tests"
+                  element={
+                    <Suspense
+                      fallback={
+                        <Loader message="Assembling catalog pipelines…" />
+                      }
+                    >
+                      <TestManagement />
                     </Suspense>
                   }
                 />

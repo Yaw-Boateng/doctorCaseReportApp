@@ -40,7 +40,7 @@ export function RegisterForm({ setView }) {
         password: formData.password,
         confirmPassword: formData.confirmPassword,
       });
-      setView("Login");
+      navigate("/login");
     } catch (err) {
       console.error("Registration failed", err);
       setError("Registration failed. Please try again.");

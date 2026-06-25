@@ -1,8 +1,9 @@
-// src/features/admin/worker-details.jsx
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { adminService } from "@/lib/adminService";
 import { Button } from "@/components/ui/button";
+// Import Pagination Wrapper
+import { PaginationWrapper } from "@/components/ui/pagination-wrapper";
 
 export default function WorkerDetails() {
   const { id } = useParams(); 
@@ -11,36 +12,79 @@ export default function WorkerDetails() {
   const [user, setUser] = useState(null);
   const [logs, setLogs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Pagination parameters for the audit log table
   const [logPage, setLogPage] = useState(0);
   const [logPageSize] = useState(10);
   const [totalLogPages, setTotalLogPages] = useState(0);
 
-  useEffect(() => {
-    async function fetchAllRequiredData() {
-      setIsLoading(true);
-      try {
-        // Parallel data streaming keeps load performance snappy
-        const [userResponse, logsResponse] = await Promise.all([
-          adminService.getUserById(id),
-          adminService.getUserAuditLogs(id, { page: logPage, size: logPageSize, sort: ["timestamp,desc"] })
-        ]);
+  // Unified data sync puller loop configuration
+  const fetchAllRequiredData = async () => {
+    try {
+      const [userResponse, logsResponse] = await Promise.all([
+        adminService.getUserById(id),
+        adminService.getUserAuditLogs(id, { page: logPage, size: logPageSize, sort: ["timestamp,desc"] })
+      ]);
 
-        setUser(userResponse?.data);
-        
-        // Match pagination fields to backend response parameters
-        setLogs(logsResponse?.data?.content || []);
-        setTotalLogPages(logsResponse?.data?.totalPages || 0);
-      } catch (error) {
-        console.error("Infrastructure pipeline failure loading details:", error);
-      } finally {
-        setIsLoading(false);
-      }
+      setUser(userResponse?.data);
+      setLogs(logsResponse?.data?.content || []);
+      setTotalLogPages(logsResponse?.data?.totalPages || 0);
+    } catch (error) {
+      console.error("Infrastructure pipeline failure loading details:", error);
+    } finally {
+      setIsLoading(false);
     }
+  };
 
-    if (id) fetchAllRequiredData();
+  useEffect(() => {
+    if (id) {
+      setIsLoading(true);
+      fetchAllRequiredData();
+    }
   }, [id, logPage, logPageSize]);
+
+  // PUT: Approve worker flow
+  const handleApproveWorker = async () => {
+    if (!id) return;
+    setIsSubmitting(true);
+    try {
+      await adminService.approveUser(id);
+      await fetchAllRequiredData();
+    } catch (error) {
+      console.error("Failed to commit clearance update signature mutation:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // PUT: Reject pending worker flow
+  const handleRejectWorker = async () => {
+    if (!id || !window.confirm("Are you sure you want to reject this worker application?")) return;
+    setIsSubmitting(true);
+    try {
+      await adminService.rejectUser(id);
+      await fetchAllRequiredData();
+    } catch (error) {
+      console.error("Failed to reject worker profile alignment:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // DELETE: Complete removal or access revocation flow
+  const handleDeleteWorker = async () => {
+    if (!id || !window.confirm("CRITICAL ACTION: Are you sure you want to completely revoke and delete this member from the platform registry? This action is permanent.")) return;
+    setIsSubmitting(true);
+    try {
+      await adminService.deleteUser(id);
+      // Since identity target vector no longer exists, route back to directory matrix
+      navigate("/admin/workers");
+    } catch (error) {
+      console.error("Failed to execute data structure purge mutation:", error);
+      setIsSubmitting(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -64,24 +108,60 @@ export default function WorkerDetails() {
   }
 
   return (
-    <div className="flex flex-col gap-6 w-full animate-fade-in p-6 max-w-5xl">
+    <div className="flex flex-col gap-6 w-full animate-fade-in p-6 max-w-5xl mx-auto">
       {/* Top Header Controls Area */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-border pb-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-border pb-4">
         <div>
           <h1 className="text-xl font-medium tracking-tight text-foreground">
             {user.firstName} {user.lastName}
           </h1>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground mt-0.5">
             Directory Profile Target: <span className="font-mono text-[10px] bg-muted px-1.5 py-0.5 rounded border">{user.id}</span>
           </p>
         </div>
-        <Button 
-          onClick={() => navigate("/admin/workers")} 
-          variant="outline" 
-          className="h-8 text-[11px]"
-        >
-          &larr; Back to Directory
-        </Button>
+        
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Action Trigger Buttons rendered only when clearance parameters are PENDING */}
+          {user.approvalStatus === "PENDING" && (
+            <>
+              <Button
+                onClick={handleApproveWorker}
+                disabled={isSubmitting}
+                className="h-8 text-[11px] bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 shadow-xs"
+              >
+                {isSubmitting ? "Processing..." : "Approve Profile"}
+              </Button>
+              <Button
+                onClick={handleRejectWorker}
+                disabled={isSubmitting}
+                variant="outline"
+                className="h-8 text-[11px] border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive px-4"
+              >
+                Reject Application
+              </Button>
+            </>
+          )}
+
+          {/* Destructive Deletion trigger rendered for already approved/processed members */}
+          {user.approvalStatus !== "PENDING" && (
+            <Button
+              onClick={handleDeleteWorker}
+              disabled={isSubmitting}
+              variant="outline"
+              className="h-8 text-[11px] border-destructive/40 text-destructive bg-transparent hover:bg-destructive hover:text-white transition-colors px-4"
+            >
+              {isSubmitting ? "Revoking..." : "Revoke & Delete Member"}
+            </Button>
+          )}
+          
+          <Button 
+            onClick={() => navigate("/admin/workers")} 
+            variant="outline" 
+            className="h-8 text-[11px] border-border text-foreground hover:bg-muted px-3"
+          >
+            &larr; Back
+          </Button>
+        </div>
       </div>
 
       {/* Main Structural Detail Segment blocks */}
@@ -93,7 +173,7 @@ export default function WorkerDetails() {
           <div className="flex flex-col gap-2 font-sans text-xs">
             <div className="flex justify-between py-1.5 border-b border-border/40">
               <span className="text-muted-foreground">System Username/Email</span>
-              <span className="font-mono text-foreground">{user.email}</span>
+              <span className="font-mono text-foreground select-all">{user.email}</span>
             </div>
             <div className="flex justify-between py-1.5 border-b border-border/40">
               <span className="text-muted-foreground">Associated Phone Node</span>
@@ -142,8 +222,8 @@ export default function WorkerDetails() {
         </div>
 
         <div className="border border-border rounded-xl p-4 bg-card shadow-xs">
-          <div className="border border-border/60 rounded-lg overflow-hidden w-full">
-            <div className="overflow-x-auto w-full block">
+          <div className="border border-border/60 rounded-lg overflow-hidden w-full bg-background">
+            <div className="overflow-x-auto w-full block scrollbar-thin">
               <table className="w-full text-left border-collapse text-xs table-auto min-w-[750px]">
                 <thead>
                   <tr className="border-b border-border bg-muted/40 text-muted-foreground font-medium uppercase tracking-wider">
@@ -156,26 +236,21 @@ export default function WorkerDetails() {
                 <tbody className="divide-y divide-border/40 text-foreground text-[11px]">
                   {logs.length === 0 ? (
                     <tr>
-                      <td colSpan="4" className="p-8 text-center text-muted-foreground font-sans text-xs">
+                      <td colSpan="4" className="p-8 text-center text-muted-foreground font-sans text-xs italic">
                         No persistent security ledger actions compiled for this identity target.
                       </td>
                     </tr>
                   ) : (
                     logs.map((log) => (
                       <tr key={log.id} className="hover:bg-muted/10 transition-colors font-sans">
-                        {/* Timestamp Data */}
                         <td className="p-3 pl-4 whitespace-nowrap text-muted-foreground font-mono text-[10px]">
                           {log.timestamp ? new Date(log.timestamp).toLocaleString() : "Unknown"}
                         </td>
-                        
-                        {/* Action Payload Badge */}
                         <td className="p-3">
                           <span className="bg-muted border border-border/60 px-2 py-0.5 rounded text-[10px] font-mono uppercase tracking-wide font-medium text-foreground">
                             {log.action}
                           </span>
                         </td>
-
-                        {/* Resource Entity Classification */}
                         <td className="p-3 whitespace-nowrap">
                           <div className="flex flex-col">
                             <span className="font-medium text-foreground">{log.entityType || "N/A"}</span>
@@ -184,8 +259,6 @@ export default function WorkerDetails() {
                             </span>
                           </div>
                         </td>
-
-                        {/* Extended Text Context */}
                         <td className="p-3 text-muted-foreground break-words leading-relaxed max-w-sm">
                           {log.details || "No explicit descriptive data context logged."}
                         </td>
@@ -197,30 +270,13 @@ export default function WorkerDetails() {
             </div>
           </div>
 
-          {/* Audit Logs Pagination Footers */}
-          {totalLogPages > 1 && (
-            <div className="flex items-center justify-end gap-2 mt-4 text-xs pt-2">
-              <Button
-                disabled={logPage === 0}
-                onClick={() => setLogPage((p) => Math.max(0, p - 1))}
-                variant="outline"
-                className="h-8 text-[11px]"
-              >
-                Previous Logs
-              </Button>
-              <span className="text-muted-foreground px-2 text-[11px]">
-                Log Matrix Page {logPage + 1} of {totalLogPages}
-              </span>
-              <Button
-                disabled={logPage >= totalLogPages - 1}
-                onClick={() => setLogPage((p) => p + 1)}
-                variant="outline"
-                className="h-8 text-[11px]"
-              >
-                Next Logs
-              </Button>
-            </div>
-          )}
+          {/* Beautiful and Clean Pagination Component Integration */}
+          <PaginationWrapper
+            currentPage={logPage}
+            totalPages={totalLogPages}
+            onPageChange={(newPage) => setLogPage(newPage)}
+            isLoading={isLoading}
+          />
         </div>
       </div>
     </div>

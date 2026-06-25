@@ -24,7 +24,7 @@ export function MobileMenu({ children, trigger = true }) {
       {isOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/50 md:hidden"
-          onClick={() => setIsOpen(false)}
+        onClick={() => setIsOpen(false)}
         />
       )}
 

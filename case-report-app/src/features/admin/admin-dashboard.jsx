@@ -1,35 +1,43 @@
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { useAdminDashboard } from "./hooks/useAdminDashboard";
+// Import your pagination component
+import { PaginationWrapper } from "@/components/ui/pagination-wrapper";
 
 export default function AdminDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentView, setCurrentView] = useState("overview");
 
-  // Consume your synchronized React Query hook state instance
+  // Client-side pagination state for the "All Logs" panel view
+  const [page, setPage] = useState(0);
+  const [pageSize] = useState(10);
+
+  // Consume synchronized React Query hook state instance
   const { data, isLoading, isError } = useAdminDashboard();
 
-  // Safeguard defaults if data is still loading or unavailable
-  const logs = data?.logs || [];
-  const statsMetrics = data?.stats || { totalUsersCount: null, clinicalWorkersCount: null, systemManagersCount: null };
+  // Safeguard defaults mapping to the new API structure
+  const logs = data?.logs || []; 
+  const statsMetrics = data || { totalUsers: null, totalWorkers: null, totalManagers: null };
 
   const stats = useMemo(() => [
     { 
       label: "Total Registered Users", 
-      count: statsMetrics.totalUsersCount !== null ? String(statsMetrics.totalUsersCount) : "Data unavailable", 
+      count: statsMetrics.totalUsers !== null ? String(statsMetrics.totalUsers) : "Data unavailable", 
       detail: "All platform roles combined" 
     },
     { 
       label: "Total Clinical Workers", 
-      count: statsMetrics.clinicalWorkersCount !== null ? String(statsMetrics.clinicalWorkersCount) : "Data unavailable", 
+      count: statsMetrics.totalWorkers !== null ? String(statsMetrics.totalWorkers) : "Data unavailable", 
       detail: "Doctors and medical practitioners" 
     },
     { 
       label: "Total System Managers", 
-      count: statsMetrics.systemManagersCount !== null ? String(statsMetrics.systemManagersCount) : "Node and regional supervisors" 
+      count: statsMetrics.totalManagers !== null ? String(statsMetrics.totalManagers) : "Data unavailable", 
+      detail: "Node and regional supervisors" 
     },
   ], [statsMetrics]);
 
+  // Step 1: Filter the full log collection matching the search query
   const filteredLogs = useMemo(() => {
     if (!searchQuery.trim()) return logs;
     const query = searchQuery.toLowerCase();
@@ -42,7 +50,26 @@ export default function AdminDashboard() {
     );
   }, [logs, searchQuery]);
 
+  // Step 2: Extract a preview slice (first 4 items) for the summary dashboard landing panel view
   const previewLogs = useMemo(() => filteredLogs.slice(0, 4), [filteredLogs]);
+
+  // Step 3: Calculate current window pagination slice for "All Logs" view
+  const paginatedLogs = useMemo(() => {
+    const startOffset = page * pageSize;
+    const endOffset = startOffset + pageSize;
+    return filteredLogs.slice(startOffset, endOffset);
+  }, [filteredLogs, page, pageSize]);
+
+  // Step 4: Dynamically compute total logical pages based on matches
+  const totalPages = useMemo(() => {
+    return Math.ceil(filteredLogs.length / pageSize);
+  }, [filteredLogs.length, pageSize]);
+
+  // Reset page cursor whenever filters are typed or removed to prevent blank array states
+  const handleSearchChange = (val) => {
+    setSearchQuery(val);
+    setPage(0);
+  };
 
   if (isError) {
     return (
@@ -90,6 +117,7 @@ export default function AdminDashboard() {
                 <Button 
                   onClick={() => {
                     setSearchQuery(""); 
+                    setPage(0); // Clear pointer matrix
                     setCurrentView("all-logs");
                   }}
                   variant="outline" 
@@ -115,7 +143,7 @@ export default function AdminDashboard() {
               <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
                 <button 
                   onClick={() => setCurrentView("overview")}
-                  className="hover:text-foreground hover:underline bg-transparent border-0 p-0 cursor-pointer"
+                  className="hover:text-foreground hover:underline bg-transparent border-0 p-0 cursor-pointer text-xs"
                 >
                   Dashboard
                 </button>
@@ -133,7 +161,7 @@ export default function AdminDashboard() {
                 type="text"
                 placeholder="Search Name, Email, Action, ID..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 className="h-9 w-full px-3 text-xs rounded-lg border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                 disabled={isLoading}
               />
@@ -143,11 +171,11 @@ export default function AdminDashboard() {
           <div className="border border-border rounded-xl p-4 sm:p-6 bg-card shadow-xs w-full overflow-hidden">
             <div className="flex items-center justify-between mb-4">
               <span className="text-xs text-muted-foreground">
-                {isLoading ? "Quantifying logged matrices..." : `Showing ${filteredLogs.length} of ${logs.length} logged entries`}
+                {isLoading ? "Quantifying logged matrices..." : `Showing ${Math.min(filteredLogs.length, page * pageSize + 1)}-${Math.min(filteredLogs.length, (page + 1) * pageSize)} of ${filteredLogs.length} matching logged entries`}
               </span>
               {searchQuery && (
                 <button 
-                  onClick={() => setSearchQuery("")}
+                  onClick={() => handleSearchChange("")}
                   className="text-xs text-primary hover:underline font-medium bg-transparent border-0 p-0 cursor-pointer"
                 >
                   Clear filter query
@@ -155,7 +183,17 @@ export default function AdminDashboard() {
               )}
             </div>
             
-            <TableStructure logsData={filteredLogs} isLoading={isLoading} />
+            {/* Display parsed window collection array items */}
+            <TableStructure logsData={paginatedLogs} isLoading={isLoading} />
+
+            {/* Pagination controls hook layout integration mount point */}
+            <PaginationWrapper
+              currentPage={page}
+              totalPages={totalPages}
+              onPageChange={(newPage) => setPage(newPage)}
+              isLoading={isLoading}
+              className="mt-4"
+            />
           </div>
         </div>
       )}

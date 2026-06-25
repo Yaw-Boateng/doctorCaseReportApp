@@ -1,23 +1,41 @@
 import { useQuery } from "@tanstack/react-query";
 import { adminService } from "@/lib/adminService";
+import { api } from "@/lib/api";
 
 export function useAdminDashboard() {
   return useQuery({
     queryKey: ["admin", "dashboard-telemetry"],
     queryFn: async () => {
-      // 1. Fetch our base user metrics
+      // 1. Fetch metrics from the new dedicated analytics endpoint using Axios
+      let metricsData = { totalUsers: null, totalWorkers: null, totalManagers: null };
+      try {
+        // Automatically handles base URL, auth token injection, and ngrok warning bypass
+        const response = await api.get("/admin/dashboard/analytics");
+        if (response.data && response.data.success) {
+          metricsData = response.data.data;
+        }
+      } catch (e) {
+        console.warn("Failed to fetch explicit dashboard analytics endpoint via Axios:", e);
+      }
+
+      // 2. Fetch our base user metrics (still required for the log generation workflow below)
       const userRes = await adminService.getAllUsers({ page: 0, size: 200 });
       const userList = userRes?.data?.content || userRes?.content || [];
-      const totalUsersCount = userRes?.data?.totalElements ?? userRes?.totalElements ?? userList.length;
 
-      // 2. Compute explicit aggregations
-      const clinicalWorkersCount = userList.filter(
-        (u) => u.role === "ROLE_WORKER" || u.role === "ROLE_CLINICAL"
-      ).length;
-
-      const systemManagersCount = userList.filter(
-        (u) => u.role === "ROLE_ADMIN" || u.role === "ROLE_SUPERVISOR" || u.role === "ROLE_MANAGER"
-      ).length;
+      // If the backend analytics call failed, calculate client-side fallbacks using original logic
+      if (metricsData.totalUsers === null) {
+        metricsData.totalUsers = userRes?.data?.totalElements ?? userRes?.totalElements ?? userList.length;
+      }
+      if (metricsData.totalWorkers === null) {
+        metricsData.totalWorkers = userList.filter(
+          (u) => u.role === "ROLE_WORKER" || u.role === "ROLE_CLINICAL"
+        ).length;
+      }
+      if (metricsData.totalManagers === null) {
+        metricsData.totalManagers = userList.filter(
+          (u) => u.role === "ROLE_ADMIN" || u.role === "ROLE_SUPERVISOR" || u.role === "ROLE_MANAGER"
+        ).length;
+      }
 
       // 3. Dynamic Optimization: Fetch real audit data for the newest profiles
       const targetUsersForLogs = userList.slice(0, 5); 
@@ -44,7 +62,7 @@ export function useAdminDashboard() {
         })
       );
 
-      // Flatten our concurrent responses into a single continuous audit list
+      // Flatten concurrent responses into a single continuous audit list
       const rawLogs = logsNestedArrays.flat();
 
       // 4. Fallback safeguard check
@@ -62,12 +80,11 @@ export function useAdminDashboard() {
         timestamp: item.timestamp || item.approvedAt || null,
       }));
 
+      // Return unified interface parameters cleanly
       return {
-        stats: {
-          totalUsersCount,
-          clinicalWorkersCount,
-          systemManagersCount,
-        },
+        totalUsers: metricsData.totalUsers,
+        totalWorkers: metricsData.totalWorkers,
+        totalManagers: metricsData.totalManagers,
         logs: normalizedLogs,
       };
     },

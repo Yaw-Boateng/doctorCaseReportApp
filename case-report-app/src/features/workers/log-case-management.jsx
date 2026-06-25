@@ -1,51 +1,120 @@
-import { Button } from "@/components/ui/button";
+import React, { useState, useEffect, useCallback } from "react";
+import caseService from "@/lib/caseService";
+import { Loader2 } from "lucide-react";
+import { CaseFilters } from "./components/CaseFilters";
+import { CaseModal } from "./components/CaseModal";
+import { CaseTable } from "./components/CaseTable";
 
-export default function LogCaseManagement() {
-  const cases = [
-    {
-      trackingId: "CASE-9021",
-      patient: "Anonymous A",
-      intensity: "Urgent",
-      date: "2026-06-01",
-    },
-    {
-      trackingId: "CASE-4412",
-      patient: "Anonymous B",
-      intensity: "Routine",
-      date: "2026-05-30",
-    },
-  ];
+export default function CaseManagement() {
+  const [cases, setCases] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  
+  const [page, setPage] = useState(0);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedCase, setSelectedCase] = useState(null);
+
+  const fetchCases = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await caseService.getAllCases({
+        page,
+        size: 10,
+        search: searchTerm || undefined
+      });
+      
+      const nestedData = response?.data;
+      if (nestedData && Array.isArray(nestedData.content)) {
+        setCases(nestedData.content);
+      } else if (Array.isArray(nestedData)) {
+        setCases(nestedData);
+      } else {
+        setCases([]);
+      }
+    } catch (error) {
+      console.error("Failed to sync case matrix tracking lines:", error);
+      setCases([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [page, searchTerm]);
+
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      fetchCases();
+    }, 300);
+    return () => clearTimeout(delayDebounceFn);
+  }, [fetchCases]);
+
+  const handleOpenAddModal = () => {
+    setSelectedCase(null);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenViewModal = (item) => {
+    setSelectedCase(item);
+    setIsModalOpen(true);
+  };
+
+  const handleSaveCase = async (formData) => {
+    try {
+      if (selectedCase) {
+        await caseService.updateCase(selectedCase.caseId, formData);
+      } else {
+        await caseService.createCase(formData);
+      }
+      setIsModalOpen(false);
+      fetchCases();
+    } catch (error) {
+      console.error("Persisting operations mutations failed on target endpoint context:", error);
+    }
+  };
+
+  const handleDeleteCase = async (caseId) => {
+    if (window.confirm("Are you sure you want to permanently clear this diagnostic case tracking sequence?")) {
+      try {
+        await caseService.deleteCase(caseId);
+        fetchCases();
+      } catch (error) {
+        console.error("Purging transactional log case records context failed execution:", error);
+      }
+    }
+  };
 
   return (
-    <div className="w-full flex flex-col gap-4">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-        <h3 className="font-semibold text-base sm:text-lg">Case Log Entries</h3>
-        <Button size="sm" className="w-full sm:w-auto">
-          + Log New Case
-        </Button>
+    <div className="space-y-6 max-w-[1200px] mx-auto p-4 md:p-8 animate-in fade-in duration-300">
+      <div className="flex flex-col gap-1.5 border-b border-border/40 pb-4">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">Case Log Dashboard</h1>
+        <p className="text-sm text-muted-foreground">
+          Audit, compile, and record medical incident cases matching analytical operations across systemic clinics.
+        </p>
       </div>
-      <div className="flex flex-col gap-3">
-        {cases.map((c) => (
-          <div
-            key={c.trackingId}
-            className="p-4 sm:p-6 border border-border bg-card rounded-lg flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4"
-          >
-            <div className="flex-1">
-              <div className="font-bold text-sm sm:text-base">
-                {c.trackingId}
-              </div>
-              <div className="text-xs text-muted-foreground mt-1">
-                Logged on: {c.date}
-              </div>
-            </div>
-            <span
-              className={`text-xs px-3 py-1.5 rounded font-semibold w-fit ${c.intensity === "Urgent" ? "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400" : "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300"}`}
-            >
-              {c.intensity}
-            </span>
-          </div>
-        ))}
-      </div>
+
+      <CaseFilters 
+        searchTerm={searchTerm} 
+        onSearchChange={setSearchTerm} 
+        onAddClick={handleOpenAddModal} 
+      />
+
+      {loading ? (
+        <div className="flex items-center justify-center min-h-[300px]">
+          <Loader2 className="h-6 w-6 animate-spin text-primary/80" />
+        </div>
+      ) : (
+        <CaseTable 
+          cases={cases}
+          onViewCase={handleOpenViewModal} 
+        />
+      )}
+
+      <CaseModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSave={handleSaveCase}
+        onDelete={handleDeleteCase}
+        medicalCase={selectedCase}
+      />
     </div>
   );
 }

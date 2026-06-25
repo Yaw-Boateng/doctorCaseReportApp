@@ -53,6 +53,8 @@ case-report-app/
 │   │   │   ├── loader.jsx
 │   │   │   ├── mobile-menu.jsx
 │   │   │   └── dropdown-menu.jsx
+│   │   │   └── confirm-delete-modal.jsx
+│   │   │   └── pagination-wrapper.jsx
 │   │   ├── theme-context.jsx 
 │   │   ├── theme-provider.jsx          # Context manager for light/dark mode
 │   │   ├── theme-toggle.jsx            # UI Button to change themes
@@ -92,8 +94,52 @@ case-report-app/
 │   ├── index.css                       # Main Tailwind v4 directive & Dark Mode variables
 │   └── main.jsx
 
-
-
-
-
 ## Append a beautifully styled, scrollable shadcn-themed audit log table right under your user metrics display.
+
+## The Complete Git Lifecycle
+
+# Step 1: Work on your Feature Branch & Commit Changes
+1. Check the status of your changed files
+git status
+2. Stage all your changes
+git add .
+3. Commit your changes with a descriptive message
+git commit -m "feat: implement responsive layout for case management platform"
+
+# Step 2: Push your Branch to the Remote Server
+- Push your local branch to the remote repository (origin)
+- Use -u (upstream) the first time so Git remembers the connection
+1. git push -u origin feature/case-portal-ui
+
+# Step 3: Create, Approve, and Merge the Pull Request
+
+Once pushed, you switch from your terminal to your repository platform (like GitHub):
+- Open the PR: Go to your repository page on GitHub. You will see a yellow banner saying "feature/case-portal-ui had recent pushes". Click "Compare & pull request".
+- Configure: Set the base branch to main and the compare branch to feature/case-portal-ui. Add a description of your changes and click "Create pull request".
+- Get Approval: Send the PR link to your teammate.
+
+      # What they do: They click "Files changed", review your code, click "Review changes", select "Approve", and submit.
+
+- Merge: Once you see the green checkmark showing it's approved, click the green "Merge pull request" button (or "Squash and merge"), then click "Confirm merge".
+
+## Step 4: Sync your Local Machine & Clean Up
+1. Switch back to your local main branch
+git checkout main
+2. Pull the newly merged changes from the cloud down to your machine
+git pull origin main
+3. Delete your old local feature branch safely (since it's already merged)
+git branch -d feature/case-portal-ui
+4. Optional: Delete the branch from the remote server if GitHub didn't do it automatically
+git push origin --delete feature/case-portal-ui
+
+## Step 5: Create a New Branch for your Next Task
+- Create and instantly switch to your next branch
+1. git checkout -b feature/new-analytics-dashboard
+
+# What if my teammate updated main while I was still working on my feature branch?
+# Before you push your branch, run these commands to pull their updates into your branch so you can resolve any conflicts locally:
+
+1. git checkout main
+2. git pull origin main
+3. git checkout feature/case-portal-ui
+4. git merge main

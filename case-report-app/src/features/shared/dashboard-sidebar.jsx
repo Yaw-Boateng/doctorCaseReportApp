@@ -2,37 +2,37 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Menu, X, LogOut, ShieldCheck, Activity, Layers } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const MENU_CONFIG = {
   admin: {
     title: "Admin Control",
     icon: <ShieldCheck className="w-4 h-4 text-primary" />,
-    items: ["Admin Dashboard", "Workers Management"],
+    items: [
+      { name: "Admin Dashboard", path: "/admin" },
+      { name: "Workers Management", path: "/admin/workers" },
+      { name: "Test Management", path: "/admin/tests" },
+    ],
   },
   worker: {
     title: "Workers Portal",
     icon: <Activity className="w-4 h-4 text-emerald-500" />,
-    items: ["Doctor Management", "Log Case Management"],
+    items: [
+      { name: "Doctor Management", path: "/doctor" },
+      { name: "Log Case Management", path: "/cases/log" },
+    ],
   },
   manager: {
     title: "Managers Studio",
     icon: <Layers className="w-4 h-4 text-blue-500" />,
-    items: [
-      "Manager Dashboard",
-      "Test Dashboard",
-      "Finance Dashboard",
-      "Doctors Dashboard",
-    ],
+    items: [{ name: "Manager Dashboard", path: "/manager" }],
   },
 };
 
-function SidebarContent({
-  currentView,
-  allowedSection,
-  onNavigate,
-  onClose,
-  onLogout,
-}) {
+function SidebarContent({ allowedSection, onClose, onLogout }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   return (
     <div className="flex flex-col h-full bg-card border-r border-border">
       <div className="p-5 flex items-center justify-between border-b border-border/60 min-h-[65px]">
@@ -64,19 +64,22 @@ function SidebarContent({
             </div>
             <nav className="space-y-1">
               {allowedSection.items.map((item) => {
-                const isActive = currentView === item;
+                const isActive = location.pathname === item.path;
                 return (
                   <Button
-                    key={item}
+                    key={item.path}
                     variant={isActive ? "default" : "ghost"}
                     className={`justify-start h-9 w-full text-xs font-medium tracking-tight transition-all duration-200 ${
                       isActive
                         ? "shadow-sm shadow-primary/20 bg-primary text-primary-foreground font-semibold"
                         : "text-muted-foreground hover:bg-muted hover:text-foreground"
                     }`}
-                    onClick={() => onNavigate(item)}
+                    onClick={() => {
+                      navigate(item.path);
+                      onClose(); // Automatically close mobile sidebar on navigation
+                    }}
                   >
-                    {item}
+                    {item.name}
                   </Button>
                 );
               })}
@@ -105,7 +108,7 @@ function SidebarContent({
   );
 }
 
-export function DashboardSidebar({ currentView, setView, userRole, onLogout }) {
+export function DashboardSidebar({ userRole, onLogout }) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   useEffect(() => {
@@ -125,18 +128,11 @@ export function DashboardSidebar({ currentView, setView, userRole, onLogout }) {
 
   const allowedSection = MENU_CONFIG[userRole];
 
-  const handleViewChange = (view) => {
-    setView(view);
-    setIsMobileOpen(false);
-  };
-
   return (
     <>
       <aside className="hidden md:flex md:w-60 lg:w-64 flex-col fixed top-0 bottom-0 left-0 z-20 border-r border-border bg-card">
         <SidebarContent
-          currentView={currentView}
           allowedSection={allowedSection}
-          onNavigate={handleViewChange}
           onClose={() => setIsMobileOpen(false)}
           onLogout={onLogout}
         />
@@ -172,17 +168,14 @@ export function DashboardSidebar({ currentView, setView, userRole, onLogout }) {
         />
       )}
 
+      {/* Mobile Drawer Slide-Out Panel */}
       <div
-        className={`fixed left-0 top-0 bottom-0 z-50 w-64 bg-card transition-transform duration-300 ease-in-out md:hidden ${
-          isMobileOpen
-            ? "translate-x-0"
-            : "-translate-x-full invisible pointer-events-none"
+        className={`fixed left-0 top-0 bottom-0 z-50 w-64 bg-card border-r border-border transition-transform duration-300 ease-in-out md:hidden ${
+          isMobileOpen ? "translate-x-0 shadow-xl" : "-translate-x-full"
         }`}
       >
         <SidebarContent
-          currentView={currentView}
           allowedSection={allowedSection}
-          onNavigate={handleViewChange}
           onClose={() => setIsMobileOpen(false)}
           onLogout={onLogout}
         />
