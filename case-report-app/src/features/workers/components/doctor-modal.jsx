@@ -53,8 +53,8 @@ export const DoctorModal = ({ isOpen, onClose, onSave, onDelete, onToggleStatus,
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      {/* 🌟 FIXED RESPONSIVENESS: Ensured the modal content respects dynamic mobile viewport scale targets */}
-      <DialogContent className="w-[calc(100%-2rem)] max-w-[520px] mx-auto p-5 sm:p-6 gap-4 rounded-xl border border-border/60 bg-background shadow-lg text-white/90 max-h-[90vh] overflow-y-auto">
+      {/* 🌟 FIXED THEME COMPATIBILITY: Swapped text-white/90 for text-foreground & bg-background for bg-card */}
+      <DialogContent className="w-[calc(100%-2rem)] max-w-[520px] mx-auto p-5 sm:p-6 gap-4 rounded-xl border border-border/60 bg-card shadow-lg text-foreground max-h-[90vh] overflow-y-auto">
         
         <DialogHeader className="space-y-1 text-left flex flex-row items-start justify-between border-b border-border/40 pb-3">
           <div className="space-y-1 pr-4">
@@ -66,7 +66,14 @@ export const DoctorModal = ({ isOpen, onClose, onSave, onDelete, onToggleStatus,
             </DialogDescription>
           </div>
           {doctor && (
-            <Badge variant={isActive ? "success" : "secondary"} className="text-[9px] uppercase font-bold shrink-0 mt-0.5">
+            <Badge 
+              variant={isActive ? "default" : "secondary"} 
+              className={`text-[9px] uppercase font-bold shrink-0 mt-0.5 border ${
+                isActive 
+                  ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400" 
+                  : "bg-muted text-muted-foreground border-transparent"
+              }`}
+            >
               {doctor.status}
             </Badge>
           )}
@@ -74,8 +81,7 @@ export const DoctorModal = ({ isOpen, onClose, onSave, onDelete, onToggleStatus,
 
         {/* PROFILE MANAGEMENT BAR */}
         {doctor && !isEditing && (
-          // 🌟 FIXED RESPONSIVENESS: Changed flex-row layout behaviors to fit multi-row flow safely on mobile viewports
-          <div className="flex flex-col gap-2 p-2.5 rounded-lg bg-muted/40 border border-border/40 text-xs">
+          <div className="flex flex-col gap-2 p-2.5 rounded-lg bg-muted border border-border/40 text-xs">
             <span className="text-muted-foreground font-medium pl-0.5">Operational Actions:</span>
             <div className="grid grid-cols-3 gap-1 w-full">
               <Button 
@@ -83,18 +89,22 @@ export const DoctorModal = ({ isOpen, onClose, onSave, onDelete, onToggleStatus,
                 variant="ghost" 
                 size="sm" 
                 onClick={() => setIsEditing(true)}
-                className="h-8 text-[11px] gap-1 hover:bg-background px-1"
+                className="h-8 text-[11px] gap-1 hover:bg-card text-foreground px-1"
               >
-                <Edit2 className="h-3 w-3" /> <span className="truncate">Edit</span>
+                <Edit2 className="h-3 w-3 text-muted-foreground" /> <span className="truncate">Edit</span>
               </Button>
               <Button 
                 type="button" 
                 variant="ghost" 
                 size="sm" 
                 onClick={() => onToggleStatus(doctor)}
-                className="h-8 text-[11px] gap-1 hover:bg-background text-foreground/90 px-1"
+                className="h-8 text-[11px] gap-1 hover:bg-card text-foreground px-1"
               >
-                {isActive ? <PowerOff className="h-3 w-3 text-warning" /> : <Power className="h-3 w-3 text-success" />}
+                {isActive ? (
+                  <PowerOff className="h-3 w-3 text-amber-600 dark:text-amber-500" />
+                ) : (
+                  <Power className="h-3 w-3 text-emerald-600 dark:text-emerald-500" />
+                )}
                 <span className="truncate">{isActive ? "Deactivate" : "Activate"}</span>
               </Button>
               <Button 
@@ -105,7 +115,7 @@ export const DoctorModal = ({ isOpen, onClose, onSave, onDelete, onToggleStatus,
                   onDelete(doctor.doctorId);
                   onClose();
                 }}
-                className="h-8 text-[11px] gap-1 hover:bg-destructive/10 text-destructive hover:text-destructive px-1"
+                className="h-8 text-[11px] gap-1 hover:bg-destructive/10 text-destructive font-medium px-1"
               >
                 <Trash2 className="h-3 w-3" /> <span className="truncate">Delete</span>
               </Button>
@@ -115,14 +125,16 @@ export const DoctorModal = ({ isOpen, onClose, onSave, onDelete, onToggleStatus,
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="flex flex-col space-y-1.5">
-            <Label htmlFor="fullName" className="text-xs font-semibold text-foreground/80">Full Name</Label>
+            <Label htmlFor="fullName" className="text-xs font-semibold text-muted-foreground">Full Name</Label>
             <Input
               id="fullName"
               disabled={!isEditing}
               placeholder="e.g. Dr. Kwame Express"
               value={formData.fullName}
               onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-              className={`h-9 bg-background/50 disabled:opacity-80 disabled:cursor-default text-sm ${errors.fullName ? "border-destructive" : "border-border/80"}`}
+              className={`h-9 bg-background disabled:opacity-80 disabled:cursor-default text-sm text-foreground placeholder:text-muted-foreground/70 ${
+                errors.fullName ? "border-destructive focus-visible:ring-destructive" : "border-border"
+              }`}
             />
             {errors.fullName && <span className="text-[10px] font-medium text-destructive">{errors.fullName}</span>}
           </div>
@@ -130,7 +142,7 @@ export const DoctorModal = ({ isOpen, onClose, onSave, onDelete, onToggleStatus,
           {/* Contacts Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex flex-col space-y-1.5">
-              <Label htmlFor="email" className="text-xs font-semibold text-foreground/80">Email Address</Label>
+              <Label htmlFor="email" className="text-xs font-semibold text-muted-foreground">Email Address</Label>
               <Input
                 id="email"
                 type="email"
@@ -138,13 +150,15 @@ export const DoctorModal = ({ isOpen, onClose, onSave, onDelete, onToggleStatus,
                 placeholder="name@hospital.com"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className={`h-9 bg-background/50 disabled:opacity-80 disabled:cursor-default text-sm ${errors.email ? "border-destructive" : "border-border/80"}`}
+                className={`h-9 bg-background disabled:opacity-80 disabled:cursor-default text-sm text-foreground placeholder:text-muted-foreground/70 ${
+                  errors.email ? "border-destructive focus-visible:ring-destructive" : "border-border"
+                }`}
               />
               {errors.email && <span className="text-[10px] font-medium text-destructive">{errors.email}</span>}
             </div>
 
             <div className="flex flex-col space-y-1.5">
-              <Label htmlFor="phoneNumber" className="text-xs font-semibold text-foreground/80">Phone Number</Label>
+              <Label htmlFor="phoneNumber" className="text-xs font-semibold text-muted-foreground">Phone Number</Label>
               <Input
                 id="phoneNumber"
                 type="tel"
@@ -152,34 +166,38 @@ export const DoctorModal = ({ isOpen, onClose, onSave, onDelete, onToggleStatus,
                 placeholder="+233..."
                 value={formData.phoneNumber}
                 onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-                className={`h-9 bg-background/50 disabled:opacity-80 disabled:cursor-default text-sm ${errors.phoneNumber ? "border-destructive" : "border-border/80"}`}
+                className={`h-9 bg-background disabled:opacity-80 disabled:cursor-default text-sm text-foreground placeholder:text-muted-foreground/70 ${
+                  errors.phoneNumber ? "border-destructive focus-visible:ring-destructive" : "border-border"
+                }`}
               />
               {errors.phoneNumber && <span className="text-[10px] font-medium text-destructive">{errors.phoneNumber}</span>}
             </div>
           </div>
 
           <div className="flex flex-col space-y-1.5">
-            <Label htmlFor="specialtyName" className="text-xs font-semibold text-foreground/80">Clinical Specialty</Label>
+            <Label htmlFor="specialtyName" className="text-xs font-semibold text-muted-foreground">Clinical Specialty</Label>
             <Input
               id="specialtyName"
               disabled={!isEditing}
               placeholder="e.g. Pediatrics, Cardiology"
               value={formData.specialtyName}
               onChange={(e) => setFormData({ ...formData, specialtyName: e.target.value })}
-              className={`h-9 bg-background/50 disabled:opacity-80 disabled:cursor-default text-sm ${errors.specialtyName ? "border-destructive" : "border-border/80"}`}
+              className={`h-9 bg-background disabled:opacity-80 disabled:cursor-default text-sm text-foreground placeholder:text-muted-foreground/70 ${
+                errors.specialtyName ? "border-destructive focus-visible:ring-destructive" : "border-border"
+              }`}
             />
             {errors.specialtyName && <span className="text-[10px] font-medium text-destructive">{errors.specialtyName}</span>}
           </div>
 
           <div className="flex flex-col space-y-1.5">
-            <Label htmlFor="hospitalName" className="text-xs font-semibold text-foreground/80">Hospital Assignment</Label>
+            <Label htmlFor="hospitalName" className="text-xs font-semibold text-muted-foreground">Hospital Assignment</Label>
             <Input
               id="hospitalName"
               disabled={!isEditing}
               placeholder="e.g. Korle Bu Teaching Hospital"
               value={formData.hospitalName}
               onChange={(e) => setFormData({ ...formData, hospitalName: e.target.value })}
-              className="h-9 bg-background/50 disabled:opacity-80 disabled:cursor-default text-sm border-border/80"
+              className="h-9 bg-background disabled:opacity-80 disabled:cursor-default text-sm text-foreground placeholder:text-muted-foreground/70 border-border"
             />
           </div>
 
@@ -189,14 +207,14 @@ export const DoctorModal = ({ isOpen, onClose, onSave, onDelete, onToggleStatus,
               type="button" 
               variant="outline" 
               onClick={onClose} 
-              className="h-9 sm:h-8 font-medium text-muted-foreground hover:text-foreground w-full sm:w-auto"
+              className="h-9 sm:h-8 font-medium text-muted-foreground hover:text-foreground w-full sm:w-auto border-border bg-background"
             >
               Close Window
             </Button>
             {isEditing && (
               <Button 
                 type="submit" 
-                className="h-9 sm:h-8 font-medium bg-primary text-primary-foreground hover:bg-primary/95 w-full sm:w-auto"
+                className="h-9 sm:h-8 font-medium bg-primary text-primary-foreground hover:bg-primary/90 w-full sm:w-auto shadow-xs"
               >
                 Save Changes
               </Button>

@@ -60,12 +60,20 @@ export const adminService = {
     return res.data;
   },
 
+  // GET /api/v1/admin/audit-logs (Global logs)
+  getAllAuditLogs: async (pageable = { page: 0, size: 10 }) => {
+    const res = await api.get("/admin/audit-logs", {
+      params: buildPageableParams(pageable),
+    });
+    return res.data;
+  },
+
   // GET /api/v1/admin/audit-logs/user/{userId}
   getUserAuditLogs: async (userId, pageable = { page: 0, size: 20 }) => {
     const res = await api.get(`/admin/audit-logs/user/${userId}`, {
       params: buildPageableParams(pageable),
     });
-    return res.data; // This returns the standard server payload wrapper
+    return res.data;
   },
 };
 

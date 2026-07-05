@@ -12,9 +12,10 @@ export function PasswordInput({
   const [visible, setVisible] = useState(false);
 
   return (
-    <div className={`relative flex flex-col gap-2 ${className}`}>
+    /* We keep className here on the outer wrapper for general positioning/margins if needed */
+    <div className={`flex flex-col gap-2 ${className}`}>
       {label ? (
-        <label htmlFor={id} className="text-sm font-medium">
+        <label htmlFor={id} className="text-sm font-medium tracking-wide text-foreground">
           {label}
         </label>
       ) : null}
@@ -24,16 +25,23 @@ export function PasswordInput({
           id={id}
           type={visible ? "text" : "password"}
           placeholder={placeholder}
-          className="h-10 sm:h-11 w-full rounded-lg border border-input bg-input px-3 pr-12 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-background"
+          /* Updated to match your premium style rules:
+            - h-11 (constant height matching the email input)
+            - rounded-xl (smoother corners from your inspiration dashboard image)
+            - border-border bg-input (proper theme token layout mapping)
+            - px-3.5 pr-12 (aligns left padding with email perfectly while preserving right room for the toggle)
+          */
+          className="h-11 w-full rounded-xl border border-border bg-input px-3.5 pr-12 text-sm text-foreground outline-none transition focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-background placeholder:text-muted-foreground"
           {...props}
         />
 
+        {/* Absolute wrapper perfectly centers the toggle button within the h-11 parent */}
         <div className="absolute inset-y-0 right-2 flex items-center">
           <Button
             type="button"
             variant="ghost"
             size="icon"
-            className="h-8 w-8 text-muted-foreground hover:text-foreground transition-colors"
+            className="h-8 w-8 text-muted-foreground hover:text-primary transition-colors rounded-lg"
             onClick={() => setVisible((prev) => !prev)}
             aria-label={visible ? "Hide password" : "Show password"}
           >

@@ -2,24 +2,28 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { adminService } from "@/lib/adminService";
 import { Button } from "@/components/ui/button";
-// Import Pagination Wrapper
 import { PaginationWrapper } from "@/components/ui/pagination-wrapper";
+import { Loader } from "@/components/ui/loader";
+import { ConfirmDeleteModal } from "@/components/ui/confirm-delete-modal";
+import { useToast } from "@/components/ToastContext"; // 👈 1. Import toast context hook
 
 export default function WorkerDetails() {
   const { id } = useParams(); 
   const navigate = useNavigate();
+  const { addToast } = useToast(); // 👈 2. Initialize addToast
   
   const [user, setUser] = useState(null);
   const [logs, setLogs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Pagination parameters for the audit log table
+  const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
   const [logPage, setLogPage] = useState(0);
   const [logPageSize] = useState(10);
   const [totalLogPages, setTotalLogPages] = useState(0);
 
-  // Unified data sync puller loop configuration
   const fetchAllRequiredData = async () => {
     try {
       const [userResponse, logsResponse] = await Promise.all([
@@ -32,6 +36,12 @@ export default function WorkerDetails() {
       setTotalLogPages(logsResponse?.data?.totalPages || 0);
     } catch (error) {
       console.error("Infrastructure pipeline failure loading details:", error);
+      addToast({
+        type: "error",
+        title: "Data pipeline sync failure",
+        description: "Failed to pull up-to-date registry telemetry data.",
+        duration: 5000
+      });
     } finally {
       setIsLoading(false);
     }
@@ -44,63 +54,111 @@ export default function WorkerDetails() {
     }
   }, [id, logPage, logPageSize]);
 
-  // PUT: Approve worker flow
   const handleApproveWorker = async () => {
     if (!id) return;
     setIsSubmitting(true);
     try {
       await adminService.approveUser(id);
+      
+      // 👈 3. Success Approval Toast Trigger
+      addToast({
+        type: "success",
+        title: "Application Approved",
+        description: `${user?.firstName || "Worker"} has been cleared for clinical operational dashboard tasks.`,
+        duration: 4000
+      });
+      
       await fetchAllRequiredData();
     } catch (error) {
       console.error("Failed to commit clearance update signature mutation:", error);
+      addToast({
+        type: "error",
+        title: "Clearance error",
+        description: "Failed to authorize worker identity alignment profile.",
+        duration: 5000
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // PUT: Reject pending worker flow
   const handleRejectWorker = async () => {
-    if (!id || !window.confirm("Are you sure you want to reject this worker application?")) return;
+    if (!id) return;
     setIsSubmitting(true);
     try {
       await adminService.rejectUser(id);
+      setIsRejectModalOpen(false);
+      
+      // 👈 4. Warning/Rejection Toast Trigger
+      addToast({
+        type: "warning",
+        title: "Application Rejected",
+        description: `The application file for ${user?.firstName || "Worker"} was successfully locked and marked denylisted.`,
+        duration: 4500
+      });
+
       await fetchAllRequiredData();
     } catch (error) {
       console.error("Failed to reject worker profile alignment:", error);
+      addToast({
+        type: "error",
+        title: "Rejection failed",
+        description: "Could not apply profile lock parameters. Please try again.",
+        duration: 5000
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // DELETE: Complete removal or access revocation flow
   const handleDeleteWorker = async () => {
-    if (!id || !window.confirm("CRITICAL ACTION: Are you sure you want to completely revoke and delete this member from the platform registry? This action is permanent.")) return;
+    if (!id) return;
     setIsSubmitting(true);
     try {
       await adminService.deleteUser(id);
-      // Since identity target vector no longer exists, route back to directory matrix
+      setIsDeleteModalOpen(false);
+      
+      // 👈 5. Destructive Delete Toast Trigger
+      addToast({
+        type: "error", // Crimson accent used intentionally for hard data purges
+        title: "Identity Record Purged",
+        description: "The targeted network registration index was wiped from persistent layers.",
+        duration: 4000
+      });
+
       navigate("/admin/workers");
     } catch (error) {
       console.error("Failed to execute data structure purge mutation:", error);
+      addToast({
+        type: "error",
+        title: "Purge execution failed",
+        description: "Database target locked by process concurrency dependencies.",
+        duration: 5000
+      });
       setIsSubmitting(false);
     }
   };
 
   if (isLoading) {
     return (
-      <div className="p-12 text-center text-xs text-muted-foreground font-sans animate-pulse">
-        Polling ledger and auditing profiles for allocation ID: {id}...
+      <div className="py-24 flex items-center justify-center w-full min-h-[50vh]">
+        <Loader message={`Loading...`} />
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div className="p-6 flex flex-col gap-4 max-w-md">
+      <div className="p-6 flex flex-col gap-4 max-w-md mx-auto my-12 bg-background text-foreground">
         <p className="text-xs text-destructive bg-destructive/10 border border-destructive/20 p-3 rounded-lg">
           Error: Requested worker node ledger target does not exist or has been removed from persistent arrays.
         </p>
-        <Button onClick={() => navigate("/admin/workers")} size="sm" variant="outline" className="w-fit h-8 text-[11px]">
+        <Button 
+          onClick={() => navigate("/admin/workers")} 
+          size="sm" 
+          variant="outline" 
+          className="w-fit h-8 text-[11px] border-border bg-card hover:bg-primary/5 hover:text-primary transition-colors"
+        >
           &larr; Return to Worker Directory
         </Button>
       </div>
@@ -108,20 +166,16 @@ export default function WorkerDetails() {
   }
 
   return (
-    <div className="flex flex-col gap-6 w-full animate-fade-in p-6 max-w-5xl mx-auto">
+    <div className="flex flex-col gap-6 w-full animate-fade-in p-6 max-w-5xl mx-auto bg-background text-foreground">
       {/* Top Header Controls Area */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-border pb-4">
         <div>
           <h1 className="text-xl font-medium tracking-tight text-foreground">
             {user.firstName} {user.lastName}
           </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Directory Profile Target: <span className="font-mono text-[10px] bg-muted px-1.5 py-0.5 rounded border">{user.id}</span>
-          </p>
         </div>
         
         <div className="flex flex-wrap items-center gap-2">
-          {/* Action Trigger Buttons rendered only when clearance parameters are PENDING */}
           {user.approvalStatus === "PENDING" && (
             <>
               <Button
@@ -132,32 +186,31 @@ export default function WorkerDetails() {
                 {isSubmitting ? "Processing..." : "Approve Profile"}
               </Button>
               <Button
-                onClick={handleRejectWorker}
+                onClick={() => setIsRejectModalOpen(true)}
                 disabled={isSubmitting}
                 variant="outline"
-                className="h-8 text-[11px] border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive px-4"
+                className="h-8 text-[11px] border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive px-4 bg-card"
               >
                 Reject Application
               </Button>
             </>
           )}
 
-          {/* Destructive Deletion trigger rendered for already approved/processed members */}
           {user.approvalStatus !== "PENDING" && (
             <Button
-              onClick={handleDeleteWorker}
+              onClick={() => setIsDeleteModalOpen(true)}
               disabled={isSubmitting}
               variant="outline"
-              className="h-8 text-[11px] border-destructive/40 text-destructive bg-transparent hover:bg-destructive hover:text-white transition-colors px-4"
+              className="h-8 text-[11px] border-destructive/40 text-destructive bg-card hover:bg-destructive hover:text-white transition-colors px-4"
             >
-              {isSubmitting ? "Revoking..." : "Revoke & Delete Member"}
+              Revoke & Delete Member
             </Button>
           )}
           
           <Button 
             onClick={() => navigate("/admin/workers")} 
             variant="outline" 
-            className="h-8 text-[11px] border-border text-foreground hover:bg-muted px-3"
+            className="h-8 text-[11px] border-border text-foreground bg-card hover:bg-muted px-3"
           >
             &larr; Back
           </Button>
@@ -166,7 +219,6 @@ export default function WorkerDetails() {
 
       {/* Main Structural Detail Segment blocks */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        
         {/* Profile Card Summary */}
         <div className="border border-border rounded-xl p-4 bg-card shadow-xs flex flex-col gap-3">
           <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Account Credentials</h2>
@@ -181,7 +233,7 @@ export default function WorkerDetails() {
             </div>
             <div className="flex justify-between py-1.5 border-b border-border/40">
               <span className="text-muted-foreground">System Core Role</span>
-              <span className="bg-muted px-1.5 py-0.5 rounded text-[10px] font-mono border uppercase text-foreground">
+              <span className="bg-muted px-1.5 py-0.5 rounded text-[10px] font-mono border border-border uppercase text-foreground">
                 {user.role?.replace("ROLE_", "")}
               </span>
             </div>
@@ -214,7 +266,7 @@ export default function WorkerDetails() {
         </div>
       </div>
 
-      {/* ================= USER PERFORMANCE AUDIT LOGS SECTION ================= */}
+      {/* ACTION HISTORY TIMELINE LOGS */}
       <div className="flex flex-col gap-3 mt-2">
         <div>
           <h2 className="text-sm font-medium tracking-tight text-foreground">Action History & Logs</h2>
@@ -254,9 +306,6 @@ export default function WorkerDetails() {
                         <td className="p-3 whitespace-nowrap">
                           <div className="flex flex-col">
                             <span className="font-medium text-foreground">{log.entityType || "N/A"}</span>
-                            <span className="text-[9px] text-muted-foreground font-mono tracking-tight">
-                              {log.entityId ? `ID: ${log.entityId.slice(0, 8)}...` : ""}
-                            </span>
                           </div>
                         </td>
                         <td className="p-3 text-muted-foreground break-words leading-relaxed max-w-sm">
@@ -270,15 +319,34 @@ export default function WorkerDetails() {
             </div>
           </div>
 
-          {/* Beautiful and Clean Pagination Component Integration */}
           <PaginationWrapper
             currentPage={logPage}
             totalPages={totalLogPages}
             onPageChange={(newPage) => setLogPage(newPage)}
             isLoading={isLoading}
+            className="mt-4"
           />
         </div>
       </div>
+
+      <ConfirmDeleteModal
+        isOpen={isRejectModalOpen}
+        onClose={() => setIsRejectModalOpen(false)}
+        onConfirm={handleRejectWorker}
+        title="Reject Worker Application"
+        description={`Are you sure you want to deny application authorization privileges for ${user.firstName} ${user.lastName}? Their current credentials will be locked.`}
+        isSubmitting={isSubmitting}
+      />
+
+      <ConfirmDeleteModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleDeleteWorker}
+        title="Revoke & Delete Record"
+        description={`CRITICAL WARNING: You are completely deleting ${user.firstName} ${user.lastName} from the platform registry. This action unlinks all telemetry streams and cannot be undone.`}
+        requireMatchText={user.email}
+        isSubmitting={isSubmitting}
+      />
     </div>
   );
 }

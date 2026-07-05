@@ -2,16 +2,17 @@ import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { adminService } from "@/lib/adminService";
 import { PaginationWrapper } from "@/components/ui/pagination-wrapper";
+import { Loader } from "@/components/ui/loader";
+import { Button } from "@/components/ui/button";
 
 export default function WorkersManagement() {
   const [users, setUsers] = useState([]);
-  const [filterTab, setFilterTab] = useState("all"); // "all" | "pending" | "approved"
+  const [filterTab, setFilterTab] = useState("all");
   const [page, setPage] = useState(0);
   const [pageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Fetch data matching current tab view filters
   const fetchUsers = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -37,15 +38,11 @@ export default function WorkersManagement() {
   }, [filterTab, page, pageSize]);
 
   useEffect(() => {
-    const loadUsers = async () => {
-      await fetchUsers();
-    };
-
-    loadUsers();
+    fetchUsers();
   }, [fetchUsers]);
 
   return (
-    <div className="flex flex-col gap-6 w-full animate-fade-in py-2 overflow-hidden">
+    <div className="flex flex-col gap-6 w-full animate-fade-in p-6 max-w-5xl mx-auto bg-background text-foreground">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl font-medium tracking-tight text-foreground">
@@ -58,7 +55,7 @@ export default function WorkersManagement() {
         </div>
 
         {/* Tab Filters Switcher Panel */}
-        <div className="flex items-center gap-1 bg-muted p-1 rounded-lg text-xs self-start sm:self-auto">
+        <div className="flex items-center gap-1 bg-muted p-1 rounded-lg text-xs self-start sm:self-auto border border-border/40">
           {["all", "pending", "approved"].map((tab) => (
             <button
               key={tab}
@@ -66,10 +63,10 @@ export default function WorkersManagement() {
                 setFilterTab(tab);
                 setPage(0);
               }}
-              className={`px-3 py-1.5 rounded-md capitalize font-medium transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-md capitalize font-medium transition-all cursor-pointer border-0 ${
                 filterTab === tab
                   ? "bg-card text-foreground shadow-xs"
-                  : "text-muted-foreground hover:text-foreground"
+                  : "text-muted-foreground hover:text-foreground bg-transparent"
               }`}
             >
               {tab}
@@ -80,12 +77,11 @@ export default function WorkersManagement() {
 
       <div className="border border-border rounded-xl p-4 bg-card shadow-xs w-full overflow-hidden">
         {isLoading ? (
-          <div className="p-12 text-center text-xs text-muted-foreground font-sans">
-            Loading worker directory data from infrastructure servers...
+          <div className="py-12 flex items-center justify-center w-full">
+            <Loader message="Loading worker directory data from infrastructure servers..." />
           </div>
         ) : (
           <div className="border border-border/60 rounded-lg overflow-hidden w-full bg-background">
-            {/* Scrollable table container wrapper */}
             <div className="w-full overflow-x-auto block scrollbar-thin">
               <table className="w-full text-left border-collapse text-xs table-auto min-w-[800px]">
                 <thead>
@@ -101,7 +97,7 @@ export default function WorkersManagement() {
                     <tr>
                       <td
                         colSpan="4"
-                        className="p-6 text-center text-muted-foreground font-sans text-xs"
+                        className="p-6 text-center text-muted-foreground font-sans text-xs italic"
                       >
                         No worker ledger parameters found for this workspace
                         node.
@@ -113,7 +109,6 @@ export default function WorkersManagement() {
                         key={u.id}
                         className="hover:bg-muted/10 transition-colors font-sans"
                       >
-                        {/* Name & Contact Info Section */}
                         <td className="p-3 pl-4">
                           <div className="flex flex-col gap-0.5">
                             <span className="font-medium text-xs text-foreground">
@@ -130,14 +125,12 @@ export default function WorkersManagement() {
                           </div>
                         </td>
 
-                        {/* Role Details */}
                         <td className="p-3">
                           <span className="bg-muted px-2 py-0.5 rounded text-[10px] font-mono border border-border/40 uppercase">
                             {u.role?.replace("ROLE_", "")}
                           </span>
                         </td>
 
-                        {/* Status Clearance Badge */}
                         <td className="p-3">
                           <span
                             className={`px-2 py-0.5 rounded text-[10px] font-medium border ${
@@ -152,14 +145,18 @@ export default function WorkersManagement() {
                           </span>
                         </td>
 
-                        {/* Link Router View Action Hook */}
+                        {/* ROUTE SYNC FIX */}
                         <td className="p-3 pr-4 text-right">
-                          <Link
-                            to={`/admin/users/${u.id}`}
-                            className="text-primary hover:underline font-medium text-xs bg-transparent border-0 p-0 cursor-pointer inline-block transition-all"
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            asChild
+                            className="h-7 px-2 text-[11px] font-semibold tracking-wide gap-1.5 inline-flex hover:bg-primary/5 hover:text-primary transition-colors"
                           >
-                            View Details →
-                          </Link>
+                            <Link to={`/admin/users/${u.id}`}>
+                              <span>View Details</span>
+                            </Link>
+                          </Button>
                         </td>
                       </tr>
                     ))
@@ -170,12 +167,12 @@ export default function WorkersManagement() {
           </div>
         )}
 
-        {/* Integrated Pagination Component Wrapper */}
         <PaginationWrapper
           currentPage={page}
           totalPages={totalPages}
           onPageChange={(newPage) => setPage(newPage)}
           isLoading={isLoading}
+          className="mt-4"
         />
       </div>
     </div>

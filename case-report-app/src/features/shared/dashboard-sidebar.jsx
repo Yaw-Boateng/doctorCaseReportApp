@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Menu, X, LogOut, ShieldCheck, Activity, Layers } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useToast } from "@/components/ToastContext"; // 👈 1. Import your toast hook
 
 const MENU_CONFIG = {
   admin: {
@@ -32,6 +33,23 @@ const MENU_CONFIG = {
 function SidebarContent({ allowedSection, onClose, onLogout }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { addToast } = useToast(); // 👈 2. Initialize toast hook inside content layout
+
+  // 👈 3. Intercept layout action handler to trigger local notifications alongside state resets
+  const handleSidebarLogout = async () => {
+    try {
+      await onLogout(); // Run standard upstream session state deletion parameters
+      
+      addToast({
+        type: "success",
+        title: "Logged Out Successfully",
+        description: "You have been securely signed out of MedCase Portal.",
+        duration: 4000,
+      });
+    } catch (err) {
+      console.error("UI notification intercept failure:", err);
+    }
+  };
 
   return (
     <div className="flex flex-col h-full bg-card border-r border-border">
@@ -97,7 +115,7 @@ function SidebarContent({ allowedSection, onClose, onLogout }) {
           variant="outline"
           size="sm"
           className="flex-1 h-9 text-xs font-medium border-border hover:bg-destructive/10 hover:text-destructive transition-colors gap-2"
-          onClick={onLogout}
+          onClick={handleSidebarLogout} // 👈 4. Call our intercepted proxy instead of the bare property raw function
         >
           <LogOut className="w-3.5 h-3.5" />
           <span>Log Out</span>

@@ -46,11 +46,13 @@ export function AuthProvider({ children }) {
 
         // If another instance of this mount context is executing, await its result
         if (!sharedBootPromise) {
-          sharedBootPromise = authApi.post("/refresh-token", {
-            refreshToken: storedToken,
-          }).finally(() => {
-            sharedBootPromise = null;
-          });
+          sharedBootPromise = authApi
+            .post("/refresh-token", {
+              refreshToken: storedToken,
+            })
+            .finally(() => {
+              sharedBootPromise = null;
+            });
         }
 
         const res = await sharedBootPromise;
@@ -67,7 +69,9 @@ export function AuthProvider({ children }) {
             localStorage.setItem("app_refresh_token", payload.refreshToken);
           }
         } else {
-          throw new Error("Missing access tokens from refresh handler payload.");
+          throw new Error(
+            "Missing access tokens from refresh handler payload.",
+          );
         }
       } catch (err) {
         if (!isMounted) return;
@@ -79,7 +83,7 @@ export function AuthProvider({ children }) {
         } else {
           console.error(
             "Infrastructure telemetry synchronization failure:",
-            err.message
+            err.message,
           );
         }
       } finally {
@@ -206,7 +210,11 @@ export function AuthProvider({ children }) {
         resetPassword,
       }}
     >
-      {isLoading ? <Loader message="Checking authentication…" /> : children}
+      {isLoading ? (
+        <Loader variant="fullPage" message="Checking authentication…" />
+      ) : (
+        children
+      )}
     </AuthContext.Provider>
   );
 }

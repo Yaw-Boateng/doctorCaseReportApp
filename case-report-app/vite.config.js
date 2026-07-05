@@ -8,8 +8,12 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
-      // 2. Use import.meta.dirname to point to your local src folder
+      // 1. Points to your local src folder
       "@": path.resolve(import.meta.dirname, "./src"),
+      
+      // 2. Redirects React to the profiling builds
+      "react-dom$": "react-dom/profiling",
+      "scheduler/tracing": "scheduler/tracing-profiling",
     },
   },
 });

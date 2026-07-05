@@ -3,11 +3,13 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { PasswordInput } from "@/components/ui/password-input";
 import { useAuth } from "../context/use-auth";
+import { useToast } from "@/components/ToastContext";
 
 export function ResetPasswordForm() {
   const { resetPassword } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { addToast } = useToast();
 
   const email = location.state?.email || "";
   const otp = location.state?.otp || "";
@@ -15,35 +17,54 @@ export function ResetPasswordForm() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState({ type: "", message: "" });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!email || !otp) {
-      setStatus({ type: "error", message: "Session missing parameters. Please restart request." });
+      addToast({
+        type: "warning",
+        title: "Missing Parameters",
+        description: "Session data lost. Please restart the password reset process.",
+        duration: 5000
+      });
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setStatus({ type: "error", message: "Passwords do not match." });
+      addToast({
+        type: "error",
+        title: "Passwords mismatch",
+        description: "The passwords you entered do not match.",
+        duration: 4000
+      });
       return;
     }
 
     setLoading(true);
-    setStatus({ type: "", message: "" });
 
     try {
-      // Hits POST /api/v1/auth/reset-password
       await resetPassword(email, otp, newPassword, confirmPassword);
       
-      setStatus({ type: "success", message: "Password updated successfully! Routing to login..." });
-      setTimeout(() => navigate("/login"), 3000);
+      addToast({
+        type: "success",
+        title: "Password Updated",
+        description: "Your password was successfully reset! Redirecting to login...",
+        duration: 3000
+      });
+
+      // Clear local states to avoid duplicate rapid submissions
+      setNewPassword("");
+      setConfirmPassword("");
+
+      setTimeout(() => navigate("/login"), 1000);
     } catch (err) {
       console.error(err);
-      setStatus({ 
-        type: "error", 
-        message: err.response?.data?.message || "Failed to update password. Try again." 
+      addToast({
+        type: "error",
+        title: "Update Failed",
+        description: err.response?.data?.message || "Failed to update password. Try again.",
+        duration: 5000
       });
     } finally {
       setLoading(false);
@@ -51,20 +72,10 @@ export function ResetPasswordForm() {
   };
 
   return (
-    <form className="flex flex-col gap-4 w-full" onSubmit={handleSubmit}>
-      <p className="text-sm text-muted-foreground">
+    <form className="flex flex-col gap-5 w-full text-foreground" onSubmit={handleSubmit}>
+      <p className="text-sm text-muted-foreground leading-relaxed">
         Set up a strong, secure new password for your access portal profile.
       </p>
-
-      {status.message && (
-        <div className={`p-3 text-xs rounded-lg border ${
-          status.type === "success" 
-            ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" 
-            : "bg-destructive/10 text-destructive border-destructive/20"
-        }`}>
-          {status.message}
-        </div>
-      )}
 
       <PasswordInput
         label="New Password"
@@ -84,9 +95,22 @@ export function ResetPasswordForm() {
         required
       />
 
-      <Button type="submit" className="w-full mt-2" disabled={loading || status.type === "success"}>
-        {loading ? "Updating Credentials…" : "Reset Password"}
-      </Button>
+      <div className="mt-2">
+        <Button 
+          type="submit" 
+          className="w-full h-11 rounded-xl font-medium shadow-sm transition-all active:scale-[0.98]" 
+          disabled={loading}
+        >
+          {loading ? (
+            <span className="inline-flex items-center gap-2">
+              <span className="h-4 w-4 rounded-full animate-spin border-current border-t-transparent border-2" />
+              Updating Credentials…
+            </span>
+          ) : (
+            "Reset Password"
+          )}
+        </Button>
+      </div>
     </form>
   );
 }

@@ -2,29 +2,27 @@ import { useQuery } from "@tanstack/react-query";
 import { adminService } from "@/lib/adminService";
 import { api } from "@/lib/api";
 
-export function useAdminDashboard() {
+export function useAdminDashboard(page = 0, pageSize = 10) {
   return useQuery({
-    queryKey: ["admin", "dashboard-telemetry"],
+    queryKey: ["admin", "dashboard-telemetry", page, pageSize],
     queryFn: async () => {
-      // 1. Fetch metrics from the new dedicated analytics endpoint using Axios
+      // 1. Fetch system performance metrics
       let metricsData = { totalUsers: null, totalWorkers: null, totalManagers: null };
       try {
-        // Automatically handles base URL, auth token injection, and ngrok warning bypass
         const response = await api.get("/admin/dashboard/analytics");
         if (response.data && response.data.success) {
           metricsData = response.data.data;
         }
       } catch (e) {
-        console.warn("Failed to fetch explicit dashboard analytics endpoint via Axios:", e);
+        console.warn("Failed to fetch explicit analytics dashboard endpoint:", e);
       }
 
-      // 2. Fetch our base user metrics (still required for the log generation workflow below)
+      // 2. Fetch base user lists for local runtime counting fallbacks
       const userRes = await adminService.getAllUsers({ page: 0, size: 200 });
-      const userList = userRes?.data?.content || userRes?.content || [];
+      const userList = userRes?.data?.data?.content || userRes?.data?.content || userRes?.content || [];
 
-      // If the backend analytics call failed, calculate client-side fallbacks using original logic
       if (metricsData.totalUsers === null) {
-        metricsData.totalUsers = userRes?.data?.totalElements ?? userRes?.totalElements ?? userList.length;
+        metricsData.totalUsers = userRes?.data?.data?.totalElements ?? userRes?.data?.totalElements ?? userRes?.totalElements ?? userList.length;
       }
       if (metricsData.totalWorkers === null) {
         metricsData.totalWorkers = userList.filter(
@@ -37,58 +35,39 @@ export function useAdminDashboard() {
         ).length;
       }
 
-      // 3. Dynamic Optimization: Fetch real audit data for the newest profiles
-      const targetUsersForLogs = userList.slice(0, 5); 
-      
-      const logsNestedArrays = await Promise.all(
-        targetUsersForLogs.map(async (user) => {
-          if (!user.id) return [];
-          try {
-            // Pull real historical data tracking mutations for this explicit user ID
-            const logRes = await adminService.getUserAuditLogs(user.id, { page: 0, size: 5 });
-            const logContents = logRes?.data?.content || logRes?.content || logRes?.data || [];
-            
-            // Attach user metadata to the audit signature block directly
-            return logContents.map((log) => ({
-              ...log,
-              fullName: `${user.firstName || ""} ${user.lastName || ""}`.trim() || "Unknown User",
-              email: user.email || "No email documented",
-              role: user.role || "UNKNOWN",
-            }));
-          } catch (e) {
-            console.warn(`Could not sync telemetry signatures for user node: ${user.id}`, e);
-            return [];
-          }
-        })
-      );
+      // 3. Request specific window tracking arrays using the global audit-logs endpoint
+      let rawLogs = [];
+      let totalLogsCount = 0;
 
-      // Flatten concurrent responses into a single continuous audit list
-      const rawLogs = logsNestedArrays.flat();
+      try {
+        const logsRes = await adminService.getAllAuditLogs({ page, size: pageSize });
+        
+        // 🌟 FIX: Drill deep into Axios response structure: logsRes.data (Axios) -> .data (Server response payload) -> .content
+        rawLogs = logsRes?.data?.data?.content || logsRes?.data?.content || logsRes?.content || [];
+        totalLogsCount = logsRes?.data?.data?.totalElements ?? logsRes?.data?.totalElements ?? logsRes?.totalElements ?? 0;
+      } catch (e) {
+        console.error("Error reading full platform audit index pipelines:", e);
+      }
 
-      // 4. Fallback safeguard check
-      const finalLogPool = rawLogs.length > 0 ? rawLogs : userList;
-
-      // 5. Build fully populated normalized structures
-      const normalizedLogs = finalLogPool.map((item) => ({
-        id: item.id || Math.random().toString(36).substr(2, 9),
-        userId: item.userId || item.id || "N/A",
-        fullName: item.fullName || `${item.firstName || ""} ${item.lastName || ""}`.trim() || "Unknown User",
-        email: item.email || "No email documented",
-        role: item.role || "UNKNOWN",
-        action: item.action || (item.approvalStatus ? `USER_${item.approvalStatus}` : "REGISTRATION_RECORD"),
-        details: item.details || `User verified with status: ${item.approvalStatus || "PENDING"}. Phone Contact: ${item.phoneNumber || "N/A"}`,
-        timestamp: item.timestamp || item.approvedAt || null,
+      // 4. Clean mapping loop mapping backend properties exactly
+      const normalizedLogs = rawLogs.map((item, index) => ({
+        id: item.id || `audit-row-key-${index}`, // Internal React iteration key only
+        performedBy: item.performedBy,           // yfrimps13@gmail.com
+        action: item.action,                     // USER_LOGIN, REFRESH_TOKEN_ROTATED
+        details: item.details,                   // User logged into the system
+        role: item.role,                         // ROLE_ADMIN
+        timestamp: item.timestamp,               // ISO timestamp string
       }));
 
-      // Return unified interface parameters cleanly
       return {
         totalUsers: metricsData.totalUsers,
         totalWorkers: metricsData.totalWorkers,
         totalManagers: metricsData.totalManagers,
         logs: normalizedLogs,
+        totalLogsCount: totalLogsCount,
       };
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 2,
     refetchOnWindowFocus: false,
   });
 }

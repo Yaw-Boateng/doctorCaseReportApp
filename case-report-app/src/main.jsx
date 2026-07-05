@@ -5,8 +5,9 @@ import App from "./App.jsx";
 import { AuthProvider } from "./features/auth/context/auth-context"; // Adjust your path
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "./index.css"; // Your styles
+import { ToastProvider } from "./components/ToastContext.jsx";
 
-// 1. Initialize the global Query Client instance
+// Initialize the global Query Client instance
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -18,10 +19,12 @@ const queryClient = new QueryClient({
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    {/* 2. Provide the QueryClient to the whole application tree */}
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <App />
+        {/* 👈 2. Wrap the ToastProvider right here inside AuthProvider */}
+        <ToastProvider>
+          <App />
+        </ToastProvider>
       </AuthProvider>
     </QueryClientProvider>
   </React.StrictMode>

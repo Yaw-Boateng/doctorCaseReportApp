@@ -79,10 +79,11 @@ export const TestModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[500px] p-6 gap-5 rounded-xl border border-border/60 bg-background shadow-lg text-white/90">
+      {/* REMOVED hardcoded text-white/90 -> CHANGED to text-foreground to inherit theme engine tokens */}
+      <DialogContent className="sm:max-w-[500px] p-6 gap-5 rounded-xl border border-border/60 bg-card shadow-lg text-foreground">
         <DialogHeader className="space-y-1 text-left border-b border-border/40 pb-3 pr-6">
           <DialogTitle className="text-lg font-bold tracking-tight text-foreground flex items-center flex-wrap gap-2">
-            <FlaskConical className="h-5 w-5 text-primary/80 shrink-0" />
+            <FlaskConical className="h-5 w-5 text-primary shrink-0" />
             <span>
               {testItem
                 ? isEditing
@@ -92,8 +93,12 @@ export const TestModal = ({
             </span>
             {testItem && (
               <Badge
-                variant={isActive ? "success" : "secondary"}
-                className="text-[10px] uppercase font-bold py-0.5"
+                variant={isActive ? "default" : "secondary"}
+                className={`text-[10px] uppercase font-bold py-0.5 border ${
+                  isActive 
+                    ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400" 
+                    : "bg-muted text-muted-foreground"
+                }`}
               >
                 {isActive ? "ACTIVE" : "INACTIVE"}
               </Badge>
@@ -105,7 +110,7 @@ export const TestModal = ({
         </DialogHeader>
 
         {testItem && !isEditing && (
-          <div className="flex flex-wrap items-center justify-between gap-2 p-2 rounded-lg bg-muted/40 border border-border/40 text-xs">
+          <div className="flex flex-wrap items-center justify-between gap-2 p-2 rounded-lg bg-muted border border-border/40 text-xs">
             <span className="text-muted-foreground font-medium pl-1">
               Catalog Scope Actions:
             </span>
@@ -115,21 +120,21 @@ export const TestModal = ({
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsEditing(true)}
-                className="h-7 text-[11px] gap-1 hover:bg-background"
+                className="h-7 text-[11px] gap-1 hover:bg-card text-foreground"
               >
-                <Edit2 className="h-3 w-3" /> Edit Profile
+                <Edit2 className="h-3 w-3 text-muted-foreground" /> Edit Profile
               </Button>
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
                 onClick={() => onToggleStatus(testItem)}
-                className="h-7 text-[11px] gap-1 hover:bg-background text-foreground/90"
+                className="h-7 text-[11px] gap-1 hover:bg-card text-foreground"
               >
                 {isActive ? (
-                  <PowerOff className="h-3 w-3 text-warning" />
+                  <PowerOff className="h-3 w-3 text-amber-600 dark:text-amber-500" />
                 ) : (
-                  <Power className="h-3 w-3 text-success" />
+                  <Power className="h-3 w-3 text-emerald-600 dark:text-emerald-500" />
                 )}
                 {isActive ? "Deactivate" : "Activate"}
               </Button>
@@ -141,9 +146,9 @@ export const TestModal = ({
                   onDelete(testItem.id);
                   onClose();
                 }}
-                className="h-7 text-[11px] gap-1 hover:bg-destructive/10 text-destructive hover:text-destructive"
+                className="h-7 text-[11px] gap-1 hover:bg-destructive/10 text-destructive font-medium"
               >
-                <Trash2 className="h-3 w-3" /> Purge Entry
+                <Trash2 className="h-3 w-3" /> Delete Entry
               </Button>
             </div>
           </div>
@@ -153,7 +158,7 @@ export const TestModal = ({
           <div className="flex flex-col space-y-1.5">
             <Label
               htmlFor="testName"
-              className="text-xs font-semibold text-foreground/80"
+              className="text-xs font-semibold text-muted-foreground"
             >
               Test Name
             </Label>
@@ -165,7 +170,9 @@ export const TestModal = ({
               onChange={(e) =>
                 setFormData({ ...formData, testName: e.target.value })
               }
-              className={`h-9 bg-background/50 text-sm ${errors.testName ? "border-destructive" : "border-border/80"}`}
+              className={`h-9 bg-background text-sm text-foreground placeholder:text-muted-foreground/70 ${
+                errors.testName ? "border-destructive focus-visible:ring-destructive" : "border-border"
+              }`}
             />
             {errors.testName && (
               <span className="text-[10px] font-medium text-destructive">
@@ -178,9 +185,9 @@ export const TestModal = ({
             <div className="flex flex-col space-y-1.5">
               <Label
                 htmlFor="price"
-                className="text-xs font-semibold text-foreground/80"
+                className="text-xs font-semibold text-muted-foreground"
               >
-                Price 
+                Price
               </Label>
               <Input
                 id="price"
@@ -192,7 +199,9 @@ export const TestModal = ({
                 onChange={(e) =>
                   setFormData({ ...formData, price: e.target.value })
                 }
-                className={`h-9 bg-background/50 text-sm ${errors.price ? "border-destructive" : "border-border/80"}`}
+                className={`h-9 bg-background text-sm text-foreground placeholder:text-muted-foreground/70 ${
+                  errors.price ? "border-destructive focus-visible:ring-destructive" : "border-border"
+                }`}
               />
               {errors.price && (
                 <span className="text-[10px] font-medium text-destructive">
@@ -204,9 +213,9 @@ export const TestModal = ({
             <div className="flex flex-col space-y-1.5">
               <Label
                 htmlFor="commission"
-                className="text-xs font-semibold text-foreground/80"
+                className="text-xs font-semibold text-muted-foreground"
               >
-                 Commission
+                Commission
               </Label>
               <Input
                 id="commission"
@@ -218,7 +227,9 @@ export const TestModal = ({
                 onChange={(e) =>
                   setFormData({ ...formData, commission: e.target.value })
                 }
-                className={`h-9 bg-background/50 text-sm ${errors.commission ? "border-destructive" : "border-border/80"}`}
+                className={`h-9 bg-background text-sm text-foreground placeholder:text-muted-foreground/70 ${
+                  errors.commission ? "border-destructive focus-visible:ring-destructive" : "border-border"
+                }`}
               />
               {errors.commission && (
                 <span className="text-[10px] font-medium text-destructive">
@@ -233,14 +244,14 @@ export const TestModal = ({
               type="button"
               variant="outline"
               onClick={onClose}
-              className="h-8 font-medium text-muted-foreground hover:text-foreground"
+              className="h-8 font-medium text-muted-foreground hover:text-foreground border-border bg-background"
             >
               Cancel
             </Button>
             {isEditing && (
               <Button
                 type="submit"
-                className="h-8 font-medium bg-primary text-primary-foreground hover:bg-primary/95"
+                className="h-8 font-medium bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs"
               >
                 Save Test Configuration
               </Button>
