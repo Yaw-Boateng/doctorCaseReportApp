@@ -2,75 +2,95 @@ import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { authApi } from "@/lib/api"; 
+import { useToast } from "@/components/ToastContext";
 
 export function OtpForm() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { addToast } = useToast();
   
-  // Retrieve the email passed from forgot-password screen
   const email = location.state?.email || "";
 
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!email) {
-      setError("Session expired. Please request a new code.");
+      addToast({
+        type: "warning",
+        title: "Session Expired",
+        description: "Please request a new verification code.",
+        duration: 4000
+      });
       return;
     }
     
     setLoading(true);
-    setError("");
     
     try {
-      // Hits POST /api/v1/auth/verify-otp
       await authApi.post("/verify-otp", { email, otp });
       
-      // Advance to reset password form while moving the data context along safely
-      navigate("/reset-password", { state: { email, otp } });
+      addToast({
+        type: "success",
+        title: "Verified successfully",
+        description: "Your code is valid. You may now reset your password.",
+        duration: 3000
+      });
+
+      setTimeout(() => {
+        navigate("/reset-password", { state: { email, otp } });
+      }, 400);
+
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.message || "Invalid or expired OTP verification code.");
+      addToast({
+        type: "error",
+        title: "Verification failed",
+        description: err.response?.data?.message || "Invalid or expired OTP verification code.",
+        duration: 5000
+      });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <form className="flex flex-col gap-4 w-full" onSubmit={handleSubmit}>
-      <p className="text-sm text-muted-foreground">
-        We have sent a verification code to <span className="font-medium text-foreground">{email || "your email"}</span>.
+    <form className="flex flex-col gap-5 w-full text-foreground" onSubmit={handleSubmit}>
+      <p className="text-sm text-muted-foreground leading-relaxed">
+        We have sent a verification code to <span className="font-semibold text-foreground">{email || "your email"}</span>.
       </p>
 
-      {error && (
-        <div className="p-3 text-xs rounded-lg bg-destructive/10 text-destructive border border-destructive/20">
-          {error}
-        </div>
-      )}
-
       <div className="flex flex-col gap-2">
-        <label className="text-sm font-medium">Verification Code</label>
+        <label className="text-sm font-medium tracking-wide">Verification Code</label>
         <input
           type="text"
           maxLength={6}
           placeholder="Enter 6-digit code"
           value={otp}
-          onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))} // Only allow digits
-          className="h-10 sm:h-11 px-3 tracking-widest text-center font-mono text-lg rounded-lg border border-input bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-background"
+          onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+          className="h-11 px-3.5 tracking-[0.5em] text-center font-mono text-xl rounded-xl border border-border bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-background placeholder:tracking-normal placeholder:text-sm placeholder:text-muted-foreground transition-shadow"
           required
         />
       </div>
 
-      <Button type="submit" className="w-full mt-2" disabled={loading || otp.length < 6}>
-        {loading ? "Verifying Code…" : "Verify Code"}
-      </Button>
+      <div className="mt-2">
+        <Button type="submit" className="w-full h-11 rounded-xl font-medium shadow-sm transition-all active:scale-[0.98]" disabled={loading || otp.length < 6}>
+          {loading ? (
+            <span className="inline-flex items-center gap-2">
+              <span className="h-4 w-4 rounded-full animate-spin border-current border-t-transparent border-2" />
+              Verifying Code…
+            </span>
+          ) : (
+            "Verify Code"
+          )}
+        </Button>
+      </div>
 
       <button
         type="button"
         onClick={() => navigate("/forgot-password")}
-        className="text-xs text-muted-foreground hover:underline mt-2 block text-center w-full"
+        className="text-xs font-medium text-muted-foreground hover:text-primary transition-colors mt-2 block text-center w-full border-t border-border/60 pt-4"
       >
         Resend a new code
       </button>

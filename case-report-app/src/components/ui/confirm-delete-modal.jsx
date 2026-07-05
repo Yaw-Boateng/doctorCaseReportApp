@@ -15,7 +15,7 @@ export function ConfirmDeleteModal({
   isOpen,
   onClose,
   onConfirm,
-  title = "Revoke & Purge Registry Record",
+  title = "Revoke & Delete Record",
   description = "This action is permanent and cannot be undone. System access keys will be invalidated and telemetry data unlinked.",
   requireMatchText, // Optional: Pass a string (like the username or "DELETE") to force typing confirmation
   isSubmitting = false,
@@ -40,7 +40,7 @@ export function ConfirmDeleteModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[440px] border-border bg-card p-6 shadow-lg animate-fade-in">
+      <DialogContent className="sm:max-w-[440px] border-border bg-card p-6 shadow-lg animate-fade-in text-white">
         <DialogHeader className="flex flex-col gap-3">
           {/* Warning Icon Banner */}
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-destructive/10 text-destructive border border-destructive/20 self-start">

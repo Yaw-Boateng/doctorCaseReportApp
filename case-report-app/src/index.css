@@ -21,23 +21,33 @@
 }
 
 :root {
-  --background: 220 20% 96%;
-  --foreground: 225 12% 10%;
-  --primary: 345 84% 51%;
+  /* 1. The Canvas: Pure white cards floating on a very soft, warm neutral background */
+  --background: 345 20% 97%;             /* Softest cream/pink tint matching the subtle background contrast in the image */
+  --card: 0 0% 100%;                      /* Crisp white for the inner content widgets */
+  --card-foreground: 220 30% 12%;         /* Deep slate for high text readability */
+  --foreground: 220 30% 12%;
+
+  /* 2. The Structural Contrast: The deep accent section (like the sidebar/banner in the image) */
+  --secondary: 345 60% 15%;               /* A sophisticated, deep wine-red for large structural blocks like sidebars */
+  --secondary-foreground: 0 0% 100%;      /* White text/icons over the dark structural blocks */
+
+  /* 3. The Focal Points: Your vibrant primary red used intentionally for highlights, primary buttons, and CTA blocks */
+  --primary: 345 84% 51%;                 /* Vibrant crimson for active tabs, key metrics, and main buttons */
   --primary-foreground: 0 0% 100%;
-  --secondary: 241 83% 21%;
-  --secondary-foreground: 0 0% 100%;
-  --muted: 220 18% 94%;
-  --muted-foreground: 225 12% 30%;
-  --accent: 241 83% 21%;
+  
+  /* 4. Soft Neutrals for Grids & Dividers */
+  --muted: 345 15% 93%;                   /* Used for structural elements like secondary banners or table headers */
+  --muted-foreground: 220 12% 40%;        /* Muted captions and labels */
+  
+  --accent: 345 84% 51%;                  
   --accent-foreground: 0 0% 100%;
-  --destructive: 345 84% 60%;
+  
+  --border: 345 15% 88%;                  /* Very delicate warm borders to separate grid items cleanly */
+  --input: 0 0% 100%;
+  --ring: 345 84% 51%;
+  
+  --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
-  --border: 220 18% 72%;
-  --input: 220 12% 98%;
-  --ring: 345 84% 63%;
-  --card: 0 0% 100%;
-  --card-foreground: 225 12% 10%;
 }
 
 .dark {
@@ -58,4 +68,41 @@
   --ring: 345 84% 63%;
   --card: 231 32% 16%;
   --card-foreground: 210 16% 96%;
+}
+
+@layer utilities {
+  @keyframes toastIn {
+    0% {
+      opacity: 0;
+      transform: translateX(40px) scale(0.97);
+    }
+    100% {
+      opacity: 1;
+      transform: translateX(0) scale(1);
+    }
+  }
+
+  @keyframes toastOut {
+    0% {
+      opacity: 1;
+      transform: translateX(0) scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: translateX(40px) scale(0.95);
+    }
+  }
+
+  @keyframes shrinkWidth {
+    from { width: 100%; }
+    to { width: 0%; }
+  }
+
+  .animate-toast-in {
+    animation: toastIn 280ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .animate-toast-out {
+    animation: toastOut 250ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
 }

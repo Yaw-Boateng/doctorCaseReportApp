@@ -42,57 +42,80 @@ If you are developing a production application, we recommend using TypeScript wi
 
 ## FILE STRUCTURE
 case-report-app/
+├── public/
+│   └── _redirects
 ├── src/
-│   ├── asserts/
-│   │   ├── hero.png 
-│   │   ├── react.svg
-│   │   └── vite.svg
+│   ├── App.jsx
+│   ├── index.css
+│   ├── main.jsx
+│   ├── assets/
 │   ├── components/
-│   │   ├── ui/                         # Shared base layout primitives (shadcn)
-│   │   │   ├── button.jsx
-│   │   │   ├── loader.jsx
-│   │   │   ├── mobile-menu.jsx
-│   │   │   └── dropdown-menu.jsx
-│   │   │   └── confirm-delete-modal.jsx
-│   │   │   └── pagination-wrapper.jsx
-│   │   ├── theme-context.jsx 
-│   │   ├── theme-provider.jsx          # Context manager for light/dark mode
-│   │   ├── theme-toggle.jsx            # UI Button to change themes
-│   │   └── use-theme.jsx
+│   │   ├── theme-context.jsx
+│   │   ├── theme-provider.jsx
+│   │   ├── theme-toggle.jsx
+│   │   ├── ToastContext.jsx
+│   │   ├── use-theme.jsx
+│   │   └── ui/
+│   │       ├── badge.jsx
+│   │       ├── button.jsx
+│   │       ├── confirm-delete-modal.jsx
+│   │       ├── dialog.jsx
+│   │       ├── dropdown-menu.jsx
+│   │       ├── input.jsx
+│   │       ├── label.jsx
+│   │       ├── loader.jsx
+│   │       ├── mobile-menu.jsx
+│   │       ├── pagination-wrapper.jsx
+│   │       ├── password-input.jsx
+│   │       └── toast.jsx
 │   ├── features/
-│   │   ├── auth/                       # AUTHENTICATION MODULE
-│   │   │   ├── components/
-│   │   │   │   ├── register-form.jsx
-│   │   │   │   ├── login-form.jsx
-│   │   │   │   ├── forgot-password-form.jsx
-│   │   │   │   ├── otp-form.jsx         # Verification View
-│   │   │   │   ├── reset-password-form.jsx # New Password Form View
-│   │   │   │   └── ProtectedRoute.jsx
-│   │   │   ├── context/
-│   │   │   │   ├── auth-context.jsx
-│   │   │   │   └── use-auth.jsx
-│   │   │   └── auth-layout.jsx
-│   │   ├── admin/  
-│   │   │   ├── hooks/                  
-│   │   │   │   └── useAdminDashboard.js                # ADMIN FEATURES
+│   │   ├── admin/
+│   │   │   ├── admin-dashboard.jsx
+│   │   │   ├── test-management.jsx
+│   │   │   ├── worker-details.jsx
 │   │   │   ├── workers-management.jsx
-│   │   │   └── admin-dashboard.jsx
-│   │   │   └── workers-details.jsx
-│   │   ├── workers/                    # WORKERS FEATURES
-│   │   │   ├── doctor-management.jsx
-│   │   │   └── log-case-management.jsx
-│   │   ├── managers/                   # MANAGERS FEATURES
+│   │   │   ├── components/
+│   │   │   │   ├── AdminTable.jsx
+│   │   │   │   └── TestModal.jsx
+│   │   │   └── hooks/
+│   │   │       └── useAdminDashboard.js
+│   │   ├── auth/
+│   │   │   ├── auth-layout.jsx
+│   │   │   ├── components/
+│   │   │   │   ├── forgot-password-form.jsx
+│   │   │   │   ├── login-form.jsx
+│   │   │   │   ├── otp-form.jsx
+│   │   │   │   ├── ProtectedRoute.jsx
+│   │   │   │   ├── register-form.jsx
+│   │   │   │   └── reset-password-form.jsx
+│   │   │   └── context/
+│   │   │       ├── auth-context-core.jsx
+│   │   │       ├── auth-context.jsx
+│   │   │       └── use-auth.jsx
+│   │   ├── managers/
 │   │   │   └── manager-dashboard.jsx
-│   │   └── shared/                     # Layout architectures
-│   │       ├── dashboard-sidebar.jsx
-│   │       └── DashboardLayout.jsx
-│   ├── lib/
-│   │   ├── api.js                      # axios clients and interceptors (with ngrok patches)
-│   │   ├── auth.js                     # Updated API helpers mapping endpoints
-│   │   └── utils.js                    # Classname merger utility
-│   ├── App.jsx                         # Updated Global Application Router mapping
-│   ├── index.css                       # Main Tailwind v4 directive & Dark Mode variables
-│   └── main.jsx
+│   │   ├── shared/
+│   │   │   ├── dashboard-sidebar.jsx
+│   │   │   └── DashboardLayout.jsx
+│   │   └── workers/
+│   │       ├── doctor-management.jsx
+│   │       ├── log-case-management.jsx
+│   │       └── components/
+│   │           ├── CaseFilters.jsx
+│   │           ├── CaseModal.jsx
+│   │           ├── CaseTable.jsx
+│   │           ├── doctor-filters.jsx
+│   │           ├── doctor-modal.jsx
+│   │           └── doctor-table.jsx
+│   └── lib/
+│       ├── adminService.js
+│       ├── api.js
+│       ├── auth.js
+│       ├── caseService.js
+│       ├── dashboardService.js
+│       ├── doctorService.js
+│       ├── testService.js
+│       └── utils.js
 
 ## Append a beautifully styled, scrollable shadcn-themed audit log table right under your user metrics display.
 

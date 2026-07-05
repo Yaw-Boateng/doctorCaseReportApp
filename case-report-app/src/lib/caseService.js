@@ -10,7 +10,7 @@ const buildPageableParams = (pageable = {}) => {
 };
 
 export const caseService = {
-  // GET /api/v1/cases
+  // GET /api/v1/cases with server pagination query strings applied
   getAllCases: async (pageable) => {
     const res = await api.get("/cases", { params: buildPageableParams(pageable) });
     return res.data;
