@@ -99,8 +99,7 @@ export default function WorkersManagement() {
                         colSpan="4"
                         className="p-6 text-center text-muted-foreground font-sans text-xs italic"
                       >
-                        No worker ledger parameters found for this workspace
-                        node.
+                        No worker found         
                       </td>
                     </tr>
                   ) : (

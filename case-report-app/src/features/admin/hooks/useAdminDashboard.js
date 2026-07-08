@@ -2,9 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 import { adminService } from "@/lib/adminService";
 import { api } from "@/lib/api";
 
-export function useAdminDashboard(page = 0, pageSize = 10) {
+// 🌟 Added searchQuery parameter to the hook signature
+export function useAdminDashboard(page = 0, pageSize = 10, searchQuery = "") {
   return useQuery({
-    queryKey: ["admin", "dashboard-telemetry", page, pageSize],
+    // 🌟 Pass searchQuery directly into the queryKey array
+    queryKey: ["admin", "dashboard-telemetry", page, pageSize, searchQuery],
     queryFn: async () => {
       // 1. Fetch system performance metrics
       let metricsData = { totalUsers: null, totalWorkers: null, totalManagers: null };
@@ -35,28 +37,41 @@ export function useAdminDashboard(page = 0, pageSize = 10) {
         ).length;
       }
 
-      // 3. Request specific window tracking arrays using the global audit-logs endpoint
+      // 3. Request specific window tracking arrays based on filtering context
       let rawLogs = [];
       let totalLogsCount = 0;
 
       try {
-        const logsRes = await adminService.getAllAuditLogs({ page, size: pageSize });
+        let logsRes;
+        const trimmedQuery = searchQuery.trim();
+
+        if (trimmedQuery) {
+          // 🌟 Route to your backend search endpoint if a query exists. 
+          // We provide the term to both fields to catch either scenario.
+          logsRes = await adminService.searchAuditLogs(
+            { email: trimmedQuery, action: trimmedQuery },
+            { page, size: pageSize }
+          );
+        } else {
+          // Fall back to standard paginated log index if no search query is present
+          logsRes = await adminService.getAllAuditLogs({ page, size: pageSize });
+        }
         
-        // 🌟 FIX: Drill deep into Axios response structure: logsRes.data (Axios) -> .data (Server response payload) -> .content
+        // Deep drill into Axios / server custom payload envelopes safely
         rawLogs = logsRes?.data?.data?.content || logsRes?.data?.content || logsRes?.content || [];
         totalLogsCount = logsRes?.data?.data?.totalElements ?? logsRes?.data?.totalElements ?? logsRes?.totalElements ?? 0;
       } catch (e) {
-        console.error("Error reading full platform audit index pipelines:", e);
+        console.error("Error reading platform audit pipelines:", e);
       }
 
-      // 4. Clean mapping loop mapping backend properties exactly
+      // 4. Clean mapping loop backend properties exactly
       const normalizedLogs = rawLogs.map((item, index) => ({
-        id: item.id || `audit-row-key-${index}`, // Internal React iteration key only
-        performedBy: item.performedBy,           // yfrimps13@gmail.com
-        action: item.action,                     // USER_LOGIN, REFRESH_TOKEN_ROTATED
-        details: item.details,                   // User logged into the system
-        role: item.role,                         // ROLE_ADMIN
-        timestamp: item.timestamp,               // ISO timestamp string
+        id: item.id || `audit-row-key-${index}`, 
+        performedBy: item.performedBy,           
+        action: item.action,                     
+        details: item.details,                   
+        role: item.role,                         
+        timestamp: item.timestamp,               
       }));
 
       return {

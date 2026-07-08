@@ -20,6 +20,19 @@ export const adminService = {
     return res.data;
   },
 
+  // GET /api/v1/admin/audit-logs/search
+  searchAuditLogs: async (queryParam = {}, pageable = { page: 0, size: 10 }) => {
+    const res = await api.get("/admin/audit-logs/search", {
+      params: {
+        ...buildPageableParams(pageable),
+        // Pass specific matching strings if they exist
+        email: queryParam.email || undefined,
+        action: queryParam.action || undefined,
+      },
+    });
+    return res.data;
+  },
+
   // GET /api/v1/admin/users/{id}
   getUserById: async (id) => {
     const res = await api.get(`/admin/users/${id}`);

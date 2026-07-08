@@ -90,18 +90,19 @@ export const CaseModal = ({ isOpen, onClose, onSave, onDelete, medicalCase, isSu
 
   useEffect(() => {
     if (medicalCase) {
-      const extractedIds = Array.isArray(medicalCase.tests)
-        ? medicalCase.tests.map((t) => t.id)
-        : medicalCase.testIds || [];
+    // Safely check for t.id, t.testId, or if t itself is the string ID
+    const extractedIds = Array.isArray(medicalCase.tests)
+      ? medicalCase.tests.map((t) => (typeof t === "object" ? (t?.id || t?.testId) : t)).filter(Boolean)
+      : medicalCase.testIds || [];
 
-      setFormData({
-        doctorId: medicalCase.doctorId || "",
-        patientName: medicalCase.patientName || "",
-        numberOfCases: medicalCase.numberOfCases !== undefined ? medicalCase.numberOfCases : 1,
-        testIds: extractedIds,
-      });
-      setIsEditing(false);
-    } else {
+    setFormData({
+      doctorId: medicalCase.doctorId || "",
+      patientName: medicalCase.patientName || "",
+      numberOfCases: medicalCase.numberOfCases !== undefined ? medicalCase.numberOfCases : 1,
+      testIds: extractedIds,
+    });
+    setIsEditing(false);
+  } else {
       setFormData({
         doctorId: "",
         patientName: "",
