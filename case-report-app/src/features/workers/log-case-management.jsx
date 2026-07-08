@@ -156,7 +156,7 @@ export default function CaseManagement() {
       
       addToast({
         type: "error",
-        title: "Tracking File Purged",
+        title: "Log Case Deleted",
         description: "The targeted workspace tracking indices were completely dropped from database streams.",
         duration: 4500
       });

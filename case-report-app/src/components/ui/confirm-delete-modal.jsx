@@ -89,7 +89,7 @@ export function ConfirmDeleteModal({
             disabled={isConfirmDisabled}
             className="h-9 text-xs font-medium px-4 bg-destructive hover:bg-destructive/90 text-destructive-foreground shadow-xs disabled:opacity-50"
           >
-            {isSubmitting ? "Purging Record..." : "Confirm Deletion"}
+            {isSubmitting ? "Deleting Record..." : "Confirm Deletion"}
           </Button>
         </DialogFooter>
       </DialogContent>

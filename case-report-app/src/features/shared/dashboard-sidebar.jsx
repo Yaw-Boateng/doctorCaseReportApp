@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Menu, X, LogOut, ShieldCheck, Activity, Layers } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useToast } from "@/components/ToastContext"; // 👈 1. Import your toast hook
+import { useToast } from "@/components/ToastContext";
+import dinapaLogo from "@/assets/dinapaLogo.svg"; // 👈 1. Imported your SVG logo using your path alias
 
 const MENU_CONFIG = {
   admin: {
@@ -33,13 +34,12 @@ const MENU_CONFIG = {
 function SidebarContent({ allowedSection, onClose, onLogout }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { addToast } = useToast(); // 👈 2. Initialize toast hook inside content layout
+  const { addToast } = useToast();
 
-  // 👈 3. Intercept layout action handler to trigger local notifications alongside state resets
   const handleSidebarLogout = async () => {
     try {
-      await onLogout(); // Run standard upstream session state deletion parameters
-      
+      await onLogout();
+
       addToast({
         type: "success",
         title: "Logged Out Successfully",
@@ -55,11 +55,16 @@ function SidebarContent({ allowedSection, onClose, onLogout }) {
     <div className="flex flex-col h-full bg-card border-r border-border">
       <div className="p-5 flex items-center justify-between border-b border-border/60 min-h-[65px]">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-md bg-primary flex items-center justify-center text-primary-foreground font-black text-xs">
-            M
-          </div>
+          {/* 👈 2. Replaced the old text box with your custom Dinapa logo */}
+          <div
+            className="w-6 h-6 bg-foreground transition-colors"
+            style={{
+              mask: `url(${dinapaLogo}) center/contain no-repeat`,
+              WebkitMask: `url(${dinapaLogo}) center/contain no-repeat`,
+            }}
+          />
           <span className="font-semibold text-sm tracking-tight text-foreground">
-            MedCase Portal
+            Dinpa Case Portal
           </span>
         </div>
         <button
@@ -94,7 +99,7 @@ function SidebarContent({ allowedSection, onClose, onLogout }) {
                     }`}
                     onClick={() => {
                       navigate(item.path);
-                      onClose(); // Automatically close mobile sidebar on navigation
+                      onClose();
                     }}
                   >
                     {item.name}
@@ -115,7 +120,7 @@ function SidebarContent({ allowedSection, onClose, onLogout }) {
           variant="outline"
           size="sm"
           className="flex-1 h-9 text-xs font-medium border-border hover:bg-destructive/10 hover:text-destructive transition-colors gap-2"
-          onClick={handleSidebarLogout} // 👈 4. Call our intercepted proxy instead of the bare property raw function
+          onClick={handleSidebarLogout}
         >
           <LogOut className="w-3.5 h-3.5" />
           <span>Log Out</span>
@@ -172,6 +177,12 @@ export function DashboardSidebar({ userRole, onLogout }) {
           </span>
         </div>
         <div className="flex items-center gap-2">
+          {/* 👈 3. Optional: Added it here too for consistency if you'd like your logo on the mobile view top header */}
+          <img
+            src={dinapaLogo}
+            alt="Dinapa Logo"
+            className="w-5 h-5 object-contain"
+          />
           <span className="text-xs font-bold text-foreground font-sans tracking-tight pr-1">
             MedCase
           </span>
@@ -186,7 +197,6 @@ export function DashboardSidebar({ userRole, onLogout }) {
         />
       )}
 
-      {/* Mobile Drawer Slide-Out Panel */}
       <div
         className={`fixed left-0 top-0 bottom-0 z-50 w-64 bg-card border-r border-border transition-transform duration-300 ease-in-out md:hidden ${
           isMobileOpen ? "translate-x-0 shadow-xl" : "-translate-x-full"

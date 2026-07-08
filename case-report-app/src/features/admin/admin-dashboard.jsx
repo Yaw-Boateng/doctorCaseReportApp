@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { PaginationWrapper } from "@/components/ui/pagination-wrapper";
 import { useAdminDashboard } from "./hooks/useAdminDashboard";
 import { AdminTable } from "./components/AdminTable";
+import { useDebounce } from "../shared/useDebounce";
 
 export default function AdminDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -11,7 +12,11 @@ export default function AdminDashboard() {
   const [page, setPage] = useState(0);
   const [pageSize] = useState(10);
 
-  const { data, isLoading, isError } = useAdminDashboard(page, pageSize);
+  // 🌟 1. Track a debounced variant of the immediate text state
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
+
+  // 🌟 2. Pass the debounced dependency value straight into TanStack Query
+  const { data, isLoading, isError } = useAdminDashboard(page, pageSize, debouncedSearchQuery);
 
   const logs = data?.logs || []; 
   const totalLogsCount = data?.totalLogsCount || 0;
@@ -35,18 +40,8 @@ export default function AdminDashboard() {
     },
   ], [statsMetrics]);
 
-  const filteredLogs = useMemo(() => {
-    if (!searchQuery.trim()) return logs;
-    const query = searchQuery.toLowerCase();
-    return logs.filter(
-      (log) =>
-        log.performedBy?.toLowerCase().includes(query) ||
-        log.action?.toLowerCase().includes(query) ||
-        log.details?.toLowerCase().includes(query)
-    );
-  }, [logs, searchQuery]);
-
-  const previewLogs = useMemo(() => filteredLogs.slice(0, 4), [filteredLogs]);
+  // 🌟 3. CLEANUP: Backend handles matching arrays, so we can discard the old `.filter()` block
+  const previewLogs = useMemo(() => logs.slice(0, 4), [logs]);
 
   const totalPages = useMemo(() => {
     return Math.ceil(totalLogsCount / pageSize) || 1;
@@ -54,7 +49,7 @@ export default function AdminDashboard() {
 
   const handleSearchChange = (val) => {
     setSearchQuery(val);
-    setPage(0);
+    setPage(0); // Reset pagination index on search modification
   };
 
   if (isError) {
@@ -129,6 +124,7 @@ export default function AdminDashboard() {
                 <Button
                   onClick={() => {
                     setPage(0);
+                    setSearchQuery("");
                     setCurrentView("overview");
                   }}
                   variant="outline"
@@ -136,8 +132,6 @@ export default function AdminDashboard() {
                 >
                    &larr; Back To Dashboard
                 </Button>
-                {/* <span>/</span>
-                <span className="text-foreground">Audit Center</span> */}
               </div>
               <h1 className="text-xl font-medium tracking-tight text-foreground">Complete System Audit Logs</h1>
               <p className="text-xs text-muted-foreground mt-0.5">
@@ -149,11 +143,11 @@ export default function AdminDashboard() {
             <div className="w-full sm:w-80 relative">
               <input
                 type="text"
-                placeholder="Search Current Batch..."
+                placeholder="Search by exact email or action profile..."
                 value={searchQuery}
                 onChange={(e) => handleSearchChange(e.target.value)}
+                // 🌟 REMOVED disabled={isLoading} so typing stays fluid while network tasks execute in background
                 className="h-9 w-full px-3 text-xs rounded-lg border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all shadow-xs"
-                disabled={isLoading}
               />
             </div>
           </div>
@@ -178,7 +172,8 @@ export default function AdminDashboard() {
               )}
             </div>
             
-            <AdminTable logsData={filteredLogs} isLoading={isLoading} />
+            {/* 🌟 Feed the returned logs straight from your server state hook */}
+            <AdminTable logsData={logs} isLoading={isLoading} />
 
             <PaginationWrapper
               currentPage={page}

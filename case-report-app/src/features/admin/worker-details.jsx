@@ -5,12 +5,12 @@ import { Button } from "@/components/ui/button";
 import { PaginationWrapper } from "@/components/ui/pagination-wrapper";
 import { Loader } from "@/components/ui/loader";
 import { ConfirmDeleteModal } from "@/components/ui/confirm-delete-modal";
-import { useToast } from "@/components/ToastContext"; // 👈 1. Import toast context hook
+import { useToast } from "@/components/ToastContext";
 
 export default function WorkerDetails() {
   const { id } = useParams(); 
   const navigate = useNavigate();
-  const { addToast } = useToast(); // 👈 2. Initialize addToast
+  const { addToast } = useToast();
   
   const [user, setUser] = useState(null);
   const [logs, setLogs] = useState([]);
@@ -60,7 +60,6 @@ export default function WorkerDetails() {
     try {
       await adminService.approveUser(id);
       
-      // 👈 3. Success Approval Toast Trigger
       addToast({
         type: "success",
         title: "Application Approved",
@@ -89,7 +88,6 @@ export default function WorkerDetails() {
       await adminService.rejectUser(id);
       setIsRejectModalOpen(false);
       
-      // 👈 4. Warning/Rejection Toast Trigger
       addToast({
         type: "warning",
         title: "Application Rejected",
@@ -118,10 +116,9 @@ export default function WorkerDetails() {
       await adminService.deleteUser(id);
       setIsDeleteModalOpen(false);
       
-      // 👈 5. Destructive Delete Toast Trigger
       addToast({
-        type: "error", // Crimson accent used intentionally for hard data purges
-        title: "Identity Record Purged",
+        type: "error",
+        title: "User Record Deleted",
         description: "The targeted network registration index was wiped from persistent layers.",
         duration: 4000
       });
@@ -131,7 +128,7 @@ export default function WorkerDetails() {
       console.error("Failed to execute data structure purge mutation:", error);
       addToast({
         type: "error",
-        title: "Purge execution failed",
+        title: "User Deletion failed",
         description: "Database target locked by process concurrency dependencies.",
         duration: 5000
       });
@@ -338,13 +335,13 @@ export default function WorkerDetails() {
         isSubmitting={isSubmitting}
       />
 
+      {/* 🌟 requirement string completely dropped from this instance */}
       <ConfirmDeleteModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleDeleteWorker}
         title="Revoke & Delete Record"
         description={`CRITICAL WARNING: You are completely deleting ${user.firstName} ${user.lastName} from the platform registry. This action unlinks all telemetry streams and cannot be undone.`}
-        requireMatchText={user.email}
         isSubmitting={isSubmitting}
       />
     </div>
